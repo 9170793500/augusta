@@ -115,7 +115,7 @@ export function OwnerPanel({
   return (
     <form onSubmit={onSubmit} className="flat-master-form">
       <h3 className="pane-title">Owner</h3>
-      <p className="form-hint">Flat ka malik — apartment, tower aur owner ka personal / KYC data.</p>
+      <p className="form-hint">Flat owner — apartment, tower and owner personal / KYC details.</p>
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-ok">{ok}</div>}
 
@@ -190,13 +190,12 @@ export function OwnerTable({
             <th>Tower</th>
             <th>Owner Name</th>
             <th>Mobile</th>
-            <th>Status</th>
             {canDelete && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={canDelete ? 6 : 5} className="empty">No owners yet.</td></tr>
+            <tr><td colSpan={canDelete ? 5 : 4} className="empty">No owners yet.</td></tr>
           ) : (
             rows.map((r) => {
               const o = flatResidents.find((fr) => fr.apartment_no === r.apartment_no && fr.occupancy_role === 'owner')
@@ -210,7 +209,6 @@ export function OwnerTable({
                   <td>{r.tower || '—'}</td>
                   <td>{ownerName(r.apartment_no)}</td>
                   <td>{o?.resident?.mobile || '—'}</td>
-                  <td>{r.occupancy_status?.replace('_', ' ') || '—'}</td>
                   {canDelete && (
                     <td onClick={(e) => e.stopPropagation()}>
                       <button type="button" className="btn btn-danger" onClick={() => onDelete(r.id)}>Delete</button>

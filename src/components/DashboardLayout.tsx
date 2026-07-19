@@ -18,12 +18,12 @@ type NavGroup = {
 }
 
 function groupForTab(tabId: TabId): string {
-  return NAV_GROUPS.find((g) => g.items.some((i) => i.id === tabId))?.label ?? 'Main'
+  return NAV_GROUPS.find((g) => g.items.some((i) => i.id === tabId))?.label ?? 'Dashboard'
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Main',
+    label: 'Dashboard',
     items: [{ id: 'overview', label: 'Overview', icon: '◫' }],
   },
   {
@@ -186,7 +186,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
         <div className="dash-topnav-brand">
           <div className="brand-logo-icon">A</div>
           <div>
-            <strong>Augusta Wishtown</strong>
+            <strong>Augusta Golf Homes</strong>
             <span>Society Portal</span>
           </div>
         </div>

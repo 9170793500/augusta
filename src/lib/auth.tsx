@@ -60,9 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
-  }, [])
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
+    if (error) return { error: error.message }
+    if (!data.session) {
+      return { error: 'Login failed — session not created. Check Supabase Auth settings.' }
+    }
+    await loadProfile(data.session.user.id)
+    return { error: null }
+  }, [loadProfile])
 
   const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {

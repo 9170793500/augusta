@@ -323,7 +323,7 @@ export function DashboardPage() {
       id: 'residents',
       label: 'Resident',
       count: scopedFlatResidents.length,
-      desc: isOwner ? 'You & tenant — father name se poori detail' : 'Your personal details',
+      desc: isOwner ? 'You & tenant — full personal details' : 'Your personal details',
     },
     ...(isTenant
       ? [
@@ -354,10 +354,10 @@ export function DashboardPage() {
                 <h2>Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}</h2>
                 <p>
                   {isAdmin
-                    ? 'Full administrator access to all Augusta Wishtown society records.'
+                    ? 'Full administrator access to all Augusta Golf Homes society records.'
                     : isOwner
-                      ? `Aapke flat ${apartmentNo || '—'} ka data — aapka record aur agar tenant hai to uski poori detail (father name, lease, maid/driver).`
-                      : `Sirf aapka apna data — apartment ${apartmentNo || '—'}.`}
+                      ? `View-only access for flat ${apartmentNo || '—'} — your record and tenant details (lease, staff, vehicles).`
+                      : `View-only access for apartment ${apartmentNo || '—'} — your records only.`}
                 </p>
               </div>
               {!isAdmin && apartmentNo && <div className="welcome-apartment">{apartmentNo}</div>}
@@ -496,8 +496,8 @@ export function DashboardPage() {
                     <strong>View only — {apartmentNo}</strong>
                     <p>
                       {isOwner
-                        ? 'Aapke flat ka data — khud ka owner record + tenant ki poori detail sidebar se dekho (Resident, Leases, Maids, Drivers).'
-                        : 'Sirf aapka apna data dikhega. Admin hi records update kar sakta hai.'}
+                        ? 'Your flat data only — your owner record plus tenant details in Resident, Leases, Maids, and Drivers.'
+                        : 'Only your own data is shown. Only the administrator can update records.'}
                     </p>
                   </div>
                 </div>

@@ -51,7 +51,7 @@ export function ResidentPanel({
       setLoadingOwner(false)
       if (loaded) {
         setPerson(loaded)
-        setOk('Owner data loaded — save karo to living status update hoga (duplicate nahi banega).')
+        setOk('Owner data loaded — save to update living status (no duplicate will be created).')
       } else {
         setPerson({ ...emptyPerson('owner'), full_name: '' })
         setError('No owner found for this flat. Add owner in Owner tab first.')
@@ -138,7 +138,7 @@ export function ResidentPanel({
     <form onSubmit={onSubmit} className="flat-master-form">
       <h3 className="pane-title">Resident</h3>
       <p className="form-hint">
-        Flat number dalo aur Owner choose karo — owner ka data automatically aa jayega.
+        Enter flat number and choose Owner — owner data will load automatically.
       </p>
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-ok">{ok}</div>}
@@ -227,13 +227,12 @@ export function ResidentsTable({
             <th>Father</th>
             <th>Role</th>
             <th>Mobile</th>
-            <th>Status</th>
             {!readOnly && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
           {living.length === 0 ? (
-            <tr><td colSpan={readOnly ? 6 : 7} className="empty">No residents yet.</td></tr>
+            <tr><td colSpan={readOnly ? 5 : 6} className="empty">No residents yet.</td></tr>
           ) : (
             living.map((r) => (
               <tr
@@ -246,7 +245,6 @@ export function ResidentsTable({
                 <td>{r.resident?.father_name || '—'}</td>
                 <td><span className={`badge ${r.occupancy_role}`}>{r.occupancy_role === 'owner' ? 'Owner' : 'Tenant'}</span></td>
                 <td>{r.resident?.mobile || '—'}</td>
-                <td>{r.is_current ? 'Living' : 'Moved out'}</td>
                 {!readOnly && (
                   <td onClick={(e) => e.stopPropagation()}>
                     <button type="button" className="btn btn-danger" onClick={() => onDelete(r.id)}>Delete</button>
