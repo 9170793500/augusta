@@ -85,6 +85,25 @@ export function OverviewNoticesAdmin({ onSaved }: Props) {
     load()
   }
 
+  async function togglePublished(row: SocietyNotification) {
+    const next = !row.is_published
+    setError(null)
+    setOk(null)
+
+    const { error: err } = await supabase
+      .from('society_notifications')
+      .update({ is_published: next } as never)
+      .eq('id', row.id)
+
+    if (err) {
+      setError(err.message)
+      return
+    }
+
+    setOk(next ? `"${row.title}" is now visible on login page.` : `"${row.title}" hidden from login page.`)
+    load()
+  }
+
   function startEdit(row: SocietyNotification) {
     setEditingId(row.id)
     setForm({
@@ -174,6 +193,15 @@ export function OverviewNoticesAdmin({ onSaved }: Props) {
                   <td>{row.is_published ? 'Published' : 'Hidden'}</td>
                   <td className="actions">
                     <button type="button" className="btn btn-edit" onClick={() => startEdit(row)}>Edit</button>
+                    {row.is_published ? (
+                      <button type="button" className="btn btn-hide" onClick={() => togglePublished(row)}>
+                        Hide
+                      </button>
+                    ) : (
+                      <button type="button" className="btn btn-show" onClick={() => togglePublished(row)}>
+                        Show
+                      </button>
+                    )}
                     <button type="button" className="btn btn-danger" onClick={() => remove(row.id)}>Delete</button>
                   </td>
                 </tr>

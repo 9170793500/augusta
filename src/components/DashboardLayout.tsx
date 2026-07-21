@@ -118,10 +118,27 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
   )
 
   const [activeGroup, setActiveGroup] = useState(() => groupForTab(tab))
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     setActiveGroup(groupForTab(tab))
   }, [tab])
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [tab])
+
+  useEffect(() => {
+    document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileNavOpen])
+
+  function goTab(next: TabId) {
+    onTabChange(next)
+    setMobileNavOpen(false)
+  }
 
   const sidebarSections = useMemo(() => {
     if (isAdmin) {
@@ -134,7 +151,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
   function selectCategory(label: string) {
     setActiveGroup(label)
     const group = navGroups.find((g) => g.label === label)
-    if (group?.items[0]) onTabChange(group.items[0].id)
+    if (group?.items[0]) goTab(group.items[0].id)
   }
 
   const roleLabel = isAdmin ? 'Administrator' : isTenant ? 'Tenant' : isOwner ? 'Owner' : apartmentNo || 'User'
@@ -142,6 +159,15 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
   return (
     <div className="dash-shell">
       <header className="dash-topnav">
+        <button
+          type="button"
+          className="mobile-menu-btn"
+          aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((open) => !open)}
+        >
+          {mobileNavOpen ? '✕' : '☰'}
+        </button>
         <div className="dash-topnav-brand">
           <div className="brand-logo-icon">A</div>
           <div>
@@ -172,8 +198,17 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
         </div>
       </header>
 
+      {mobileNavOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
       <div className="dash-layout">
-        <aside className="sidebar">
+        <aside className={`sidebar${mobileNavOpen ? ' open' : ''}`}>
           {!isAdmin && (
             <div className="sidebar-section-head">
               <span className="sidebar-section-label">Menu</span>
@@ -194,7 +229,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
                     key={item.id}
                     type="button"
                     className={`nav-item${tab === item.id ? ' active' : ''}`}
-                    onClick={() => onTabChange(item.id)}
+                    onClick={() => goTab(item.id)}
                   >
                     <span className="nav-icon">{item.icon}</span>
                     {item.label}

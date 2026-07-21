@@ -591,6 +591,7 @@ export function DashboardPage() {
                 {tab === 'documents' && (
                   <DocumentsTable
                     rows={filteredDocs}
+                    flatResidents={scopedFlatResidents}
                     onDelete={(id) => removeRow('kyc_documents', id)}
                     readOnly={viewOnly}
                   />
