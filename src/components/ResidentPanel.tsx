@@ -86,12 +86,16 @@ export function ResidentPanel({
     setApt(value)
     setError(null)
     setOk(null)
-    const apartment_no = value.trim().toUpperCase()
-    onSelectApartment(apartment_no || null)
-    if (person.occupancy_role === 'owner' && apartment_no && !editingId) {
-      fillOwnerData(apartment_no)
-    }
   }
+
+  useEffect(() => {
+    if (person.occupancy_role !== 'owner' || !activeApt || editingId) return
+    if (activeApt.length < 9) return
+    const timer = window.setTimeout(() => {
+      fillOwnerData(activeApt)
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [activeApt, person.occupancy_role, editingId, fillOwnerData])
 
   function handleRoleChange(role: OccupancyRole) {
     setError(null)

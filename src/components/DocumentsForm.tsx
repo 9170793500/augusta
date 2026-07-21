@@ -5,6 +5,7 @@ import { ApartmentField } from './ApartmentField'
 
 const DOC_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'owner_aadhar', label: 'Owner Aadhar' },
+  { value: 'owner_pan', label: 'Owner PAN' },
   { value: 'tenant_aadhar', label: 'Tenant Aadhar' },
   { value: 'tenant_pan', label: 'Tenant PAN' },
   { value: 'lease_copy', label: 'Lease Copy' },

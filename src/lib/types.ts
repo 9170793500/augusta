@@ -15,6 +15,7 @@ export type OccupancyRole = 'owner' | 'tenant'
 export type LinkedTo = OccupancyRole
 export type DocumentType =
   | 'owner_aadhar'
+  | 'owner_pan'
   | 'tenant_aadhar'
   | 'tenant_pan'
   | 'lease_copy'
@@ -231,8 +232,22 @@ export type Alert = {
   created_at: string
 }
 
+export type NotificationType = 'meeting' | 'announcement' | 'general'
+
+export type SocietyNotification = {
+  id: string
+  title: string
+  message: string
+  notification_type: NotificationType
+  event_date: string | null
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type TabId =
   | 'overview'
+  | 'notices'
   | 'owner'
   | 'residents'
   | 'leases'

@@ -16,7 +16,7 @@ exception when duplicate_object then null; end $$;
 
 do $$ begin
   create type public.document_type as enum (
-    'owner_aadhar', 'tenant_aadhar', 'tenant_pan', 'lease_copy',
+    'owner_aadhar', 'owner_pan', 'tenant_aadhar', 'tenant_pan', 'lease_copy',
     'maid_aadhar', 'maid_photo', 'security_aadhar', 'security_photo',
     'vehicle_rc', 'vehicle_licence', 'vehicle_puc', 'other'
   );

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { syncResidentKycDocuments } from './kycSync'
 import type { OccupancyRole, ResidentMaster } from '../lib/types'
 
 export type OwnerLink = {
@@ -164,6 +165,10 @@ export async function savePersonToFlat(apartment_no: string, person: PersonField
   } else {
     const { error } = await supabase.from('flat_residents').insert(linkPayload as never)
     if (error) throw error
+  }
+
+  if (residentId) {
+    await syncResidentKycDocuments(apartment_no, person, residentId)
   }
 
   return residentId

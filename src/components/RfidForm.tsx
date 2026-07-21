@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { RfidStatus } from '../lib/types'
+import { ApartmentField } from './ApartmentField'
+import { normalizeApartmentInput } from '../lib/apartmentUtils'
 
 type Row = {
   key: string
@@ -30,7 +32,7 @@ type Props = {
 }
 
 export function RfidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props) {
-  const [apartment, setApartment] = useState(apartmentNo || '')
+  const [apt, setApt] = useState(apartmentNo || '')
   const [rows, setRows] = useState<Row[]>([blankRow()])
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
@@ -45,15 +47,15 @@ export function RfidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
     setError(null)
     setOk(null)
 
-    const apt = (lockApartment ? apartmentNo : apartment)?.trim().toUpperCase()
-    if (!apt) {
+    const aptNo = normalizeApartmentInput(lockApartment ? apartmentNo || '' : apt)
+    if (!aptNo) {
       setError(isAdmin ? 'Apartment No is required.' : 'Your apartment is not set on your profile. Contact admin.')
       return
     }
 
     const payload = rows
       .map((r) => ({
-        apartment_no: apt,
+        apartment_no: aptNo,
         vehicle_no: r.vehicle_no.trim().toUpperCase(),
         rfid_no: r.rfid_no.trim(),
         holder_type: 'vehicle' as const,
@@ -79,7 +81,7 @@ export function RfidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
 
     setOk(`${payload.length} vehicle RFID record(s) saved.`)
     setRows([blankRow()])
-    if (!lockApartment) setApartment('')
+    if (!lockApartment) setApt('')
     onSaved()
   }
 
@@ -90,17 +92,12 @@ export function RfidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-ok">{ok}</div>}
 
-      <div className="field">
-        <label>Apartment No</label>
-        <input
-          required
-          value={lockApartment ? apartmentNo || '' : apartment}
-          onChange={(e) => setApartment(e.target.value)}
-          placeholder="AUG0010201"
-          readOnly={lockApartment}
-          disabled={lockApartment}
-        />
-      </div>
+      <ApartmentField
+        apartmentNo={apartmentNo}
+        lockApartment={lockApartment}
+        value={apt}
+        onChange={setApt}
+      />
 
       {rows.map((row, index) => (
         <div className="entry-block" key={row.key}>

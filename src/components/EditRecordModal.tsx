@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { ApartmentField } from './ApartmentField'
+import { normalizeApartmentInput } from '../lib/apartmentUtils'
 import type {
   Driver,
   EmploymentType,
@@ -45,7 +47,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
       const { error: err } = await supabase
         .from('rfid_cards')
         .update({
-          apartment_no: rfid.apartment_no.trim().toUpperCase(),
+          apartment_no: normalizeApartmentInput(rfid.apartment_no),
           vehicle_no: rfid.vehicle_no?.trim().toUpperCase() || '',
           rfid_no: rfid.rfid_no.trim(),
           status: rfid.status,
@@ -60,7 +62,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
       const { error: err } = await supabase
         .from('drivers')
         .update({
-          apartment_no: driver.apartment_no.trim().toUpperCase(),
+          apartment_no: normalizeApartmentInput(driver.apartment_no),
           vehicle_no: driver.vehicle_no?.trim().toUpperCase() || null,
           driver_name: driver.driver_name.trim(),
           mobile: driver.mobile || null,
@@ -78,7 +80,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
       const { error: err } = await supabase
         .from('maids')
         .update({
-          apartment_no: maid.apartment_no.trim().toUpperCase(),
+          apartment_no: normalizeApartmentInput(maid.apartment_no),
           name: maid.name.trim(),
           age: maid.age,
           gender: maid.gender,
@@ -143,15 +145,12 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
 
           {rfid && (
             <div className="form-grid">
-              <div className="field">
-                <label>Apartment No</label>
-                <input
-                  required
-                  value={rfid.apartment_no}
-                  onChange={(e) => setRfid({ ...rfid, apartment_no: e.target.value })}
-                  disabled={lockApartment && !isAdmin}
-                />
-              </div>
+              <ApartmentField
+                apartmentNo={rfid.apartment_no}
+                lockApartment={lockApartment && !isAdmin}
+                value={rfid.apartment_no}
+                onChange={(v) => setRfid({ ...rfid, apartment_no: v })}
+              />
               <div className="field">
                 <label>Vehicle No</label>
                 <input
@@ -200,15 +199,12 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
 
           {driver && (
             <div className="form-grid">
-              <div className="field">
-                <label>Apartment No</label>
-                <input
-                  required
-                  value={driver.apartment_no}
-                  onChange={(e) => setDriver({ ...driver, apartment_no: e.target.value })}
-                  disabled={lockApartment && !isAdmin}
-                />
-              </div>
+              <ApartmentField
+                apartmentNo={driver.apartment_no}
+                lockApartment={lockApartment && !isAdmin}
+                value={driver.apartment_no}
+                onChange={(v) => setDriver({ ...driver, apartment_no: v })}
+              />
               <div className="field">
                 <label>Vehicle No</label>
                 <input
@@ -265,15 +261,12 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
 
           {maid && (
             <div className="form-grid">
-              <div className="field">
-                <label>Apartment No</label>
-                <input
-                  required
-                  value={maid.apartment_no}
-                  onChange={(e) => setMaid({ ...maid, apartment_no: e.target.value })}
-                  disabled={lockApartment && !isAdmin}
-                />
-              </div>
+              <ApartmentField
+                apartmentNo={maid.apartment_no}
+                lockApartment={lockApartment && !isAdmin}
+                value={maid.apartment_no}
+                onChange={(v) => setMaid({ ...maid, apartment_no: v })}
+              />
               <div className="field">
                 <label>Employment Type</label>
                 <select

@@ -23,6 +23,8 @@ import { SecurityForm } from '../components/SecurityForm'
 import { OwnerPanel, OwnerTable } from '../components/OwnerPanel'
 import { ResidentPanel, ResidentsTable } from '../components/ResidentPanel'
 import { dedupeFlatResidents } from '../lib/residentUtils'
+import { syncAllResidentsKyc } from '../lib/kycSync'
+import { invalidateApartmentSuggestions } from '../lib/apartmentSuggestions'
 import {
   roleScopeOpts,
   scopeByApartment,
@@ -45,12 +47,13 @@ import {
 } from '../components/FinanceForms'
 import { DocumentsForm, DocumentsTable } from '../components/DocumentsForm'
 import { ReportsPanel } from '../components/ReportsPanel'
+import { OverviewNoticesAdmin } from '../components/NotificationsPanel'
 import { AdminUsersPanel } from '../components/AdminUsersPanel'
 import { EditRecordModal, type EditTarget } from '../components/EditRecordModal'
 import { FormModal } from '../components/FormModal'
 import { DashboardLayout } from '../components/DashboardLayout'
 
-const ADMIN_TABS: TabId[] = ['security', 'users', 'reports', 'documents', 'noc']
+const ADMIN_TABS: TabId[] = ['security', 'users', 'reports', 'documents', 'noc', 'notices']
 const SPLIT_TABS: TabId[] = [
   'owner',
   'residents',
@@ -115,6 +118,7 @@ export function DashboardPage() {
 
   const refresh = useCallback(async () => {
     setBusy(true)
+    invalidateApartmentSuggestions()
     const apt = apartmentNo?.trim().toUpperCase()
     const scoped = !isAdmin && !!apt
 
@@ -174,7 +178,8 @@ export function DashboardPage() {
     const [fRes, frRes, lRes, vRes, rRes, dRes, mRes, pRes, duesRes, nocRes, docRes, alertRes] = results
 
     if (fRes.data) setFlats(fRes.data)
-    if (frRes.data) setFlatResidents(frRes.data as FlatResidentRow[])
+    const residentRows = (frRes.data || []) as FlatResidentRow[]
+    if (frRes.data) setFlatResidents(residentRows)
     if (lRes.data) setLeases(lRes.data)
     if (vRes.data) setVehicles(vRes.data)
     if (rRes.data) setRfids(rRes.data)
@@ -183,7 +188,20 @@ export function DashboardPage() {
     if (pRes.data) setParking(pRes.data)
     if (duesRes.data) setDues(duesRes.data)
     if (nocRes.data) setNoc(nocRes.data)
-    if (docRes.data) setDocuments(docRes.data)
+    if (isAdmin && residentRows.length > 0) {
+      try {
+        await syncAllResidentsKyc(residentRows)
+        const { data: syncedDocs } = await supabase
+          .from('kyc_documents')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (syncedDocs) setDocuments(syncedDocs)
+      } catch {
+        if (docRes.data) setDocuments(docRes.data)
+      }
+    } else if (docRes.data) {
+      setDocuments(docRes.data)
+    }
     if (alertRes.data) setAlerts(alertRes.data)
 
     if (isAdmin) {
@@ -464,7 +482,13 @@ export function DashboardPage() {
           </div>
         )}
 
-        {tab === 'users' && isAdmin && <AdminUsersPanel onSaved={refresh} />}
+        {tab === 'notices' && isAdmin && (
+          <div className="content-panel">
+            <div className="list-pane list-pane-full card-section overview-notices-admin">
+              <OverviewNoticesAdmin />
+            </div>
+          </div>
+        )}
 
         {tab === 'reports' && isAdmin && (
           <ReportsPanel
@@ -480,6 +504,8 @@ export function DashboardPage() {
             alerts={alerts}
           />
         )}
+
+        {tab === 'users' && isAdmin && <AdminUsersPanel onSaved={refresh} />}
 
         {showSplit && (
           <div className="content-panel">
@@ -503,12 +529,23 @@ export function DashboardPage() {
                 </div>
               )}
               <div className="list-toolbar">
-                <input
-                  className="search"
-                  placeholder="Search records…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                <div className="search-field">
+                  <svg className="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path
+                      d="M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                    <path d="M13.5 13.5 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    type="search"
+                    className="search"
+                    placeholder="Search records…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
                 {isAdmin && FORM_TABS.includes(tab) && (
                   <button type="button" className="btn btn-primary btn-add" onClick={openAddForm}>
                     + Add
@@ -685,7 +722,7 @@ export function DashboardPage() {
 
       {isAdmin && formOpen && FORM_TABS.includes(tab) && (
         <FormModal
-          key={`${tab}-${selectedFlat ?? 'new'}-${editingResidentId ?? 'new'}`}
+          key={`${tab}-${editingResidentId ?? 'add'}`}
           title={formModalTitle(tab, formModalEdit)}
           wide={tab === 'owner' || tab === 'residents'}
           onClose={closeFormModal}

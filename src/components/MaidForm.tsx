@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { EmploymentType, StaffGender } from '../lib/types'
+import { ApartmentField } from './ApartmentField'
+import { normalizeApartmentInput } from '../lib/apartmentUtils'
 
 type Row = {
   key: string
@@ -38,7 +40,7 @@ type Props = {
 }
 
 export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props) {
-  const [apartment, setApartment] = useState(apartmentNo || '')
+  const [apt, setApt] = useState(apartmentNo || '')
   const [rows, setRows] = useState<Row[]>([blankRow('full_time'), blankRow('part_time')])
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
@@ -53,15 +55,15 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
     setError(null)
     setOk(null)
 
-    const apt = (lockApartment ? apartmentNo : apartment)?.trim().toUpperCase()
-    if (!apt) {
+    const aptNo = normalizeApartmentInput(lockApartment ? apartmentNo || '' : apt)
+    if (!aptNo) {
       setError(isAdmin ? 'Apartment No is required.' : 'Your apartment is not set on your profile. Contact admin.')
       return
     }
 
     const payload = rows
       .map((r) => ({
-        apartment_no: apt,
+        apartment_no: aptNo,
         name: r.name.trim(),
         age: r.age ? Number(r.age) : null,
         gender: r.gender || null,
@@ -90,7 +92,7 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
 
     setOk(`${payload.length} maid record(s) saved.`)
     setRows([blankRow('full_time'), blankRow('part_time')])
-    if (!lockApartment) setApartment('')
+    if (!lockApartment) setApt('')
     onSaved()
   }
 
@@ -103,16 +105,12 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-ok">{ok}</div>}
 
-      <div className="field">
-        <label>Apartment No</label>
-        <input
-          required
-          value={lockApartment ? apartmentNo || '' : apartment}
-          onChange={(e) => setApartment(e.target.value)}
-          readOnly={lockApartment}
-          disabled={lockApartment}
-        />
-      </div>
+      <ApartmentField
+        apartmentNo={apartmentNo}
+        lockApartment={lockApartment}
+        value={apt}
+        onChange={setApt}
+      />
 
       {rows.map((row, index) => (
         <div className="entry-block" key={row.key}>

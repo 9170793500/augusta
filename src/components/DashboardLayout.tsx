@@ -24,7 +24,10 @@ function groupForTab(tabId: TabId): string {
 const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Dashboard',
-    items: [{ id: 'overview', label: 'Overview', icon: '◫' }],
+    items: [
+      { id: 'overview', label: 'Overview', icon: '◫' },
+      { id: 'notices', label: 'Society Notice', icon: '🔔', adminOnly: true },
+    ],
   },
   {
     label: 'Flat & Tenancy',
@@ -63,67 +66,23 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-const PAGE_TITLES: Record<TabId, { title: string; subtitle: string }> = {
-  overview: {
-    title: 'Dashboard Overview',
-    subtitle: 'Summary of society records and quick navigation.',
-  },
-  owner: {
-    title: 'Owner',
-    subtitle: 'Your flat owner details — name, father name, Aadhar, PAN, email and mobile.',
-  },
-  residents: {
-    title: 'Resident',
-    subtitle: 'Who lives in your flat — you as owner or your tenant details.',
-  },
-  leases: {
-    title: 'Lease Management',
-    subtitle: 'Track tenancy agreements and expiry dates.',
-  },
-  vehicles: {
-    title: 'Vehicle Registration',
-    subtitle: 'RC, PUC, driver and parking details per vehicle.',
-  },
-  rfid: {
-    title: 'Vehicle RFID',
-    subtitle: 'Manage vehicle RFID cards linked to apartments.',
-  },
-  driver: {
-    title: 'Drivers',
-    subtitle: 'Register and manage drivers for each apartment.',
-  },
-  maid: {
-    title: 'Domestic Staff',
-    subtitle: 'Full-time and part-time maids with card numbers.',
-  },
-  security: {
-    title: 'Security & FMG',
-    subtitle: 'Security guards and facility management staff.',
-  },
-  parking: {
-    title: 'Parking & Gym',
-    subtitle: 'Parking slots, extra parking and gym access.',
-  },
-  dues: {
-    title: 'Maintenance Dues',
-    subtitle: 'Annual maintenance ledger and payment status.',
-  },
-  noc: {
-    title: 'NOC Charges',
-    subtitle: 'No-objection charges when tenant moves in.',
-  },
-  documents: {
-    title: 'KYC Documents',
-    subtitle: 'Aadhar, PAN, RC, licence and other proofs.',
-  },
-  reports: {
-    title: 'Reports & Alerts',
-    subtitle: 'Society-wide reports and expiry alerts (BRD §13).',
-  },
-  users: {
-    title: 'User Management',
-    subtitle: 'Create owner/tenant accounts and assign apartments.',
-  },
+const PAGE_TITLES: Record<TabId, string> = {
+  overview: 'Dashboard Overview',
+  notices: 'Society Notice',
+  owner: 'Owner',
+  residents: 'Resident',
+  leases: 'Lease Management',
+  vehicles: 'Vehicle Registration',
+  rfid: 'Vehicle RFID',
+  driver: 'Drivers',
+  maid: 'Domestic Staff',
+  security: 'Security & FMG',
+  parking: 'Parking & Gym',
+  dues: 'Maintenance Dues',
+  noc: 'NOC Charges',
+  documents: 'KYC Documents',
+  reports: 'Reports & Alerts',
+  users: 'User Management',
 }
 
 type Props = {
@@ -136,7 +95,7 @@ type Props = {
 
 export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }: Props) {
   const { profile, user, signOut, isAdmin, isOwner, isTenant, apartmentNo } = useAuth()
-  const page = PAGE_TITLES[tab]
+  const pageTitle = PAGE_TITLES[tab]
 
   function visibleItems(items: NavItem[]) {
     return items.filter((n) => {
@@ -262,8 +221,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
         <div className="dash-main">
           <header className="dash-topbar">
             <div className="dash-topbar-left">
-              <h1>{page.title}</h1>
-              <p>{page.subtitle}</p>
+              <h1>{pageTitle}</h1>
             </div>
             <div className="dash-topbar-right">
               {onRefresh && tab !== 'overview' && tab !== 'users' && (

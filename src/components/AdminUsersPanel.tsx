@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
+import { normalizeApartmentInput } from '../lib/apartmentUtils'
+import { ApartmentField } from './ApartmentField'
 
 type Props = { onSaved: () => void }
 
@@ -53,7 +55,7 @@ export function AdminUsersPanel({ onSaved }: Props) {
         email: form.email.trim(),
         password: form.password,
         full_name: form.full_name.trim(),
-        apartment_no: form.apartment_no.trim().toUpperCase(),
+        apartment_no: normalizeApartmentInput(form.apartment_no),
         role: form.role,
       },
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -100,15 +102,12 @@ export function AdminUsersPanel({ onSaved }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
             />
           </div>
-          <div className="field">
-            <label>Apartment No</label>
-            <input
-              required
-              value={form.apartment_no}
-              onChange={(e) => setForm((f) => ({ ...f, apartment_no: e.target.value }))}
-              placeholder="AUG0010201"
-            />
-          </div>
+          <ApartmentField
+            apartmentNo={null}
+            lockApartment={false}
+            value={form.apartment_no}
+            onChange={(v) => setForm((f) => ({ ...f, apartment_no: v }))}
+          />
           <div className="field">
             <label>Role</label>
             <select
