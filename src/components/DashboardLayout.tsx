@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import type { TabId } from '../lib/types'
 
@@ -94,6 +95,7 @@ type Props = {
 }
 
 export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }: Props) {
+  const navigate = useNavigate()
   const { profile, user, signOut, isAdmin, isOwner, isTenant, apartmentNo } = useAuth()
   const pageTitle = PAGE_TITLES[tab]
 
@@ -155,6 +157,11 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
   }
 
   const roleLabel = isAdmin ? 'Administrator' : isTenant ? 'Tenant' : isOwner ? 'Owner' : apartmentNo || 'User'
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="dash-shell">
@@ -247,7 +254,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
                 <span>{roleLabel}</span>
               </div>
             </div>
-            <button type="button" className="btn btn-sidebar-out" onClick={() => signOut()}>
+            <button type="button" className="btn btn-sidebar-out" onClick={() => void handleSignOut()}>
               Sign out
             </button>
           </div>

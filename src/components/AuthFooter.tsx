@@ -19,5 +19,8 @@ export function formatAuthError(message: string): string {
   if (lower.includes('invalid login credentials')) {
     return 'Wrong email or password. Please try again.'
   }
+  if (lower.includes('no profile found')) {
+    return 'This email has no society account profile. Contact admin to create your login in User Management.'
+  }
   return message
 }

@@ -52,7 +52,19 @@ input,
 select,
 textarea {
   font: inherit;
-  color: inherit;
+}
+
+input,
+select,
+textarea {
+  color: var(--text);
+  caret-color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+  opacity: 1;
 }
 
 a {
@@ -241,10 +253,24 @@ a:hover {
 
 .login-modal {
   width: min(420px, 100%);
+  color: var(--text);
+}
+
+.login-modal .field label {
+  color: var(--text-muted);
+}
+
+.login-modal input,
+.login-modal select,
+.login-modal textarea {
+  color: var(--text);
+  background: #fff;
+  caret-color: var(--text);
 }
 
 .login-modal .brand-sub {
   margin-top: 0;
+  color: var(--text-muted);
 }
 
 /* Legacy auth (forgot password etc.) */
@@ -385,6 +411,8 @@ a:hover {
   border-radius: 0 !important;
   box-shadow: none !important;
   min-width: 0;
+  color: var(--text);
+  background: #fff;
 }
 
 .apartment-preview {
@@ -456,10 +484,18 @@ a:hover {
   width: 100%;
   border: 1px solid var(--border);
   background: #fff;
+  color: var(--text);
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:hover,
+.field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 1000px #fff inset;
 }
 
 .field textarea {
@@ -1721,6 +1757,7 @@ a:hover {
   width: 100%;
   border: 1px solid var(--border);
   background: #fff;
+  color: var(--text);
   border-radius: 10px;
   padding: 0.58rem 0.9rem 0.58rem 2.45rem;
   outline: none;
@@ -1848,6 +1885,14 @@ tr:hover td {
   border-radius: 16px;
   padding: 1.25rem;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.15);
+  color: var(--text);
+}
+
+.modal-card input,
+.modal-card select,
+.modal-card textarea {
+  color: var(--text);
+  background: #fff;
 }
 
 .modal-head {

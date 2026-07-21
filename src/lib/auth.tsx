@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { Profile } from './types'
@@ -23,11 +23,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const activeUserIdRef = useRef<string | null>(null)
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    activeUserIdRef.current = userId
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    if (error) console.warn('Profile load failed:', error.message)
+    if (activeUserIdRef.current !== userId) return null
     setProfile(data)
+    return data
   }, [])
+
+  useEffect(() => {
+    activeUserIdRef.current = session?.user?.id ?? null
+  }, [session])
 
   useEffect(() => {
     let mounted = true
@@ -35,21 +44,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       setSession(data.session)
+      activeUserIdRef.current = data.session?.user?.id ?? null
       if (data.session?.user) {
         loadProfile(data.session.user.id).finally(() => {
           if (mounted) setLoading(false)
         })
       } else {
+        setProfile(null)
         setLoading(false)
       }
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next)
+      activeUserIdRef.current = next?.user?.id ?? null
       if (next?.user) {
         loadProfile(next.user.id)
       } else {
         setProfile(null)
+      }
+      if (event === 'SIGNED_OUT') {
+        setLoading(false)
       }
     })
 
@@ -68,7 +83,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!data.session) {
       return { error: 'Login failed — session not created. Check Supabase Auth settings.' }
     }
-    await loadProfile(data.session.user.id)
+
+    const userId = data.session.user.id
+    activeUserIdRef.current = userId
+    setSession(data.session)
+
+    const loaded = await loadProfile(userId)
+    if (!loaded) {
+      activeUserIdRef.current = null
+      setSession(null)
+      setProfile(null)
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        /* ignore */
+      }
+      return {
+        error:
+          'No profile found for this email. Ask the administrator to create your owner/tenant account in User Management.',
+      }
+    }
+
     return { error: null }
   }, [loadProfile])
 
@@ -80,8 +115,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    activeUserIdRef.current = null
+    setSession(null)
     setProfile(null)
+    setLoading(false)
+
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch {
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        /* local state already cleared */
+      }
+    }
   }, [])
 
   const value = useMemo(

@@ -8,7 +8,7 @@ import type { SocietyNotification } from '../lib/types'
 import loginImage from '../augusta_login_image.jpg'
 
 export function LoginPage() {
-  const { signIn, session, loading } = useAuth()
+  const { signIn, session, profile, loading } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,7 +22,7 @@ export function LoginPage() {
     fetchPublicNotifications().then(setNotices)
   }, [])
 
-  if (!loading && session) {
+  if (!loading && session && profile) {
     return <Navigate to="/dashboard" replace />
   }
 
