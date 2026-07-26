@@ -19,37 +19,37 @@ type NavGroup = {
 }
 
 function groupForTab(tabId: TabId): string {
-  return NAV_GROUPS.find((g) => g.items.some((i) => i.id === tabId))?.label ?? 'Dashboard'
+  return NAV_GROUPS.find((g) => g.items.some((i) => i.id === tabId))?.label ?? 'Portal'
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Dashboard',
+    label: 'Portal',
     items: [
       { id: 'overview', label: 'Overview', icon: '◫' },
-      { id: 'notices', label: 'Society Notice', icon: '🔔', adminOnly: true },
+      { id: 'notices', label: 'Community Events', icon: '🔔', adminOnly: true },
     ],
   },
   {
-    label: 'Flat & Tenancy',
+    label: 'Resident Directory',
     items: [
       { id: 'owner', label: 'Owner', icon: '👤', ownerOnly: true },
-      { id: 'residents', label: 'Resident', icon: '🏠' },
+      { id: 'residents', label: 'Residents', icon: '🏠' },
       { id: 'leases', label: 'Leases', icon: '📄' },
     ],
   },
   {
-    label: 'People & Access',
+    label: 'Access & Personnel',
     items: [
       { id: 'rfid', label: 'Vehicle RFID', icon: '⬡', hideForTenant: true },
       { id: 'vehicles', label: 'Vehicles', icon: '🚗', hideForTenant: true },
       { id: 'driver', label: 'Drivers', icon: '◉', hideForTenant: true },
-      { id: 'maid', label: 'Maids', icon: '◎', hideForTenant: true },
-      { id: 'security', label: 'Security Staff', icon: '⛨', adminOnly: true },
+      { id: 'maid', label: 'Domestic Staff', icon: '◎', hideForTenant: true },
+      { id: 'security', label: 'FMG & Security', icon: '⛨', adminOnly: true },
     ],
   },
   {
-    label: 'Finance & Amenities',
+    label: 'Finance & Accounts',
     items: [
       { id: 'parking', label: 'Parking & Gym', icon: 'P' },
       { id: 'dues', label: 'Maintenance Dues', icon: '₹' },
@@ -57,31 +57,31 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Documents & Reports',
+    label: 'Documents & Governance',
     adminOnly: true,
     items: [
-      { id: 'documents', label: 'KYC Documents', icon: '📎' },
-      { id: 'reports', label: 'Reports', icon: '📊', adminOnly: true },
+      { id: 'documents', label: 'Document Repository', icon: '📎' },
+      { id: 'reports', label: 'Reports & Alerts', icon: '📊', adminOnly: true },
       { id: 'users', label: 'User Management', icon: '⊞', adminOnly: true },
     ],
   },
 ]
 
 const PAGE_TITLES: Record<TabId, string> = {
-  overview: 'Dashboard Overview',
-  notices: 'Society Notice',
-  owner: 'Owner',
-  residents: 'Resident',
-  leases: 'Lease Management',
-  vehicles: 'Vehicle Registration',
+  overview: 'Resident Portal',
+  notices: 'Community Events',
+  owner: 'Owner Record',
+  residents: 'Resident Directory',
+  leases: 'Lease Agreements',
+  vehicles: 'Vehicles & Parking',
   rfid: 'Vehicle RFID',
-  driver: 'Drivers',
+  driver: 'Drivers & Access',
   maid: 'Domestic Staff',
-  security: 'Security & FMG',
-  parking: 'Parking & Gym',
+  security: 'FMG & Security',
+  parking: 'Parking & Gym Accounts',
   dues: 'Maintenance Dues',
   noc: 'NOC Charges',
-  documents: 'KYC Documents',
+  documents: 'Document Repository',
   reports: 'Reports & Alerts',
   users: 'User Management',
 }
@@ -179,7 +179,7 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
           <div className="brand-logo-icon">A</div>
           <div>
             <strong>Augusta Golf Homes</strong>
-            <span>Society Portal</span>
+            <span>Towers III · IV · V</span>
           </div>
         </div>
 

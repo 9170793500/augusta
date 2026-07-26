@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Augusta Golf Homes — Towers 3 · 4 · 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fairway-deep:#122A22;
+    --fairway-mid:#25493A;
+    --fairway-line: rgba(244,239,227,0.08);
+    --ivory:#F5F0E4;
+    --ivory-dim:#E7E0CC;
+    --brass:#AD8642;
+    --brass-bright:#C9A55E;
+    --charcoal:#1C1E18;
+    --grey:#6E7268;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ivory);
+    color:var(--charcoal);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{ font-family:'Fraunces',serif; }
+  .mono{ font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:var(--fairway-deep);
+    border-bottom:1px solid rgba(173,134,66,0.35);
+  }
+  .nav-wrap{
+    max-width:1240px; margin:0 auto; padding:18px 32px;
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+  }
+  .brand{ display:flex; flex-direction:column; color:var(--ivory); line-height:1; }
+  .brand .name{ font-size:20px; font-weight:600; letter-spacing:0.04em; }
+  .brand .towers{ font-size:11px; color:var(--brass-bright); margin-top:4px; letter-spacing:0.18em; text-transform:uppercase; }
+  nav.links{ display:flex; gap:28px; }
+  nav.links a{
+    color:var(--ivory-dim); font-size:13px; letter-spacing:0.03em;
+    padding:6px 0; border-bottom:1px solid transparent; transition:border-color .2s, color .2s;
+  }
+  nav.links a:hover{ color:var(--brass-bright); border-color:var(--brass); }
+  .login-btn{
+    background:var(--brass); color:var(--fairway-deep); font-weight:600; font-size:13px;
+    padding:10px 20px; border-radius:var(--radius); white-space:nowrap;
+  }
+  .nav-toggle{ display:none; color:var(--ivory); font-size:22px; cursor:pointer; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative; overflow:hidden;
+    background:radial-gradient(120% 140% at 15% 0%, var(--fairway-mid) 0%, var(--fairway-deep) 55%);
+    color:var(--ivory);
+    padding:90px 32px 60px;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0; opacity:0.5;
+    background-image:
+      repeating-linear-gradient(115deg, var(--fairway-line) 0px, var(--fairway-line) 1px, transparent 1px, transparent 68px);
+    pointer-events:none;
+  }
+  .hero-inner{ position:relative; max-width:1240px; margin:0 auto; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:10px;
+    font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--brass-bright);
+    margin-bottom:26px;
+  }
+  .eyebrow::before{ content:""; width:26px; height:1px; background:var(--brass); display:inline-block; }
+  .hero h1{
+    font-size:clamp(40px,6vw,74px); font-weight:600; margin:0 0 22px; max-width:800px; line-height:1.04;
+  }
+  .hero h1 em{ font-style:italic; color:var(--brass-bright); font-weight:400; }
+  .hero p.lede{
+    max-width:520px; font-size:17px; line-height:1.65; color:var(--ivory-dim); margin:0 0 40px;
+  }
+  .hero-cta{ display:flex; gap:16px; margin-bottom:64px; flex-wrap:wrap; }
+  .btn-primary{
+    background:var(--brass); color:var(--fairway-deep); font-weight:600; font-size:14px;
+    padding:14px 26px; border-radius:var(--radius);
+  }
+  .btn-ghost{
+    border:1px solid rgba(244,239,227,0.35); color:var(--ivory); font-size:14px; font-weight:500;
+    padding:14px 26px; border-radius:var(--radius);
+  }
+
+  /* ---------- Publicity gallery (item 8) ---------- */
+  .gallery{
+    position:relative; display:flex; gap:2px; height:280px; border-radius:var(--radius); overflow:hidden;
+  }
+  .gallery .frame{
+    position:relative; flex:1; min-width:0; overflow:hidden;
+    transition:flex .6s ease;
+  }
+  .gallery .frame.active{ flex:2.4; }
+  .gallery .frame img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    filter:saturate(0.92) contrast(1.02);
+    transform:scale(1.02);
+  }
+  .gallery .frame .cap{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:14px 16px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ivory); background:linear-gradient(0deg, rgba(10,20,15,0.85), transparent);
+  }
+
+  /* ---------- Section shell ---------- */
+  section.block{ max-width:1240px; margin:0 auto; padding:88px 32px; }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:44px; flex-wrap:wrap; }
+  .section-head .tag{ font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:var(--brass); margin-bottom:10px; }
+  .section-head h2{ font-size:clamp(28px,3.4vw,40px); font-weight:600; margin:0; }
+  .section-head p{ max-width:420px; color:var(--grey); font-size:14.5px; line-height:1.6; margin:0; }
+
+  /* ---------- Scorecard module grid (signature element) ---------- */
+  .scorecard{
+    border:1px solid rgba(28,30,24,0.14);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .card-row{
+    display:grid;
+    grid-template-columns:74px 1fr 230px 40px;
+    align-items:center;
+    padding:22px 26px;
+    border-bottom:1px solid rgba(28,30,24,0.1);
+    background:var(--ivory);
+    transition:background .2s;
+    gap:18px;
+  }
+  .card-row:last-child{ border-bottom:none; }
+  .card-row:hover{ background:#EFE8D6; }
+  .card-row .num{
+    font-size:13px; color:var(--brass); border:1px solid var(--brass); border-radius:50%;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+  }
+  .card-row .title{ font-size:19px; font-weight:600; margin:0 0 4px; }
+  .card-row .desc{ font-size:13.5px; color:var(--grey); margin:0; max-width:560px; }
+  .card-row .meta{ font-size:11.5px; color:var(--grey); text-align:right; letter-spacing:0.05em; }
+  .card-row .meta .status{ color:var(--fairway-mid); font-weight:600; }
+  .card-row .arrow{ font-size:20px; color:var(--brass); text-align:right; transition:transform .2s; }
+  .card-row:hover .arrow{ transform:translateX(4px); }
+
+  /* ---------- Stats strip ---------- */
+  .stats{
+    background:var(--fairway-deep); color:var(--ivory);
+  }
+  .stats-inner{
+    max-width:1240px; margin:0 auto; padding:56px 32px;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:24px;
+  }
+  .stat .value{ font-family:'Fraunces',serif; font-size:38px; color:var(--brass-bright); }
+  .stat .label{ font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ivory-dim); margin-top:6px; }
+
+  /* ---------- Two-col info (AOA / Events) ---------- */
+  .two-col{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; }
+  .info-card{
+    border:1px solid rgba(28,30,24,0.14); padding:28px; border-radius:var(--radius); background:#fff;
+  }
+  .info-card h3{ margin:0 0 14px; font-size:20px; }
+  .info-card .row{ display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid rgba(28,30,24,0.08); font-size:13.5px; }
+  .info-card .row:first-of-type{ border-top:none; }
+  .info-card .row span:first-child{ color:var(--grey); }
+  .event-item{ display:flex; gap:16px; padding:16px 0; border-top:1px solid rgba(28,30,24,0.08); }
+  .event-item:first-child{ border-top:none; }
+  .event-date{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--brass); min-width:64px; }
+  .event-item h4{ margin:0 0 4px; font-size:15px; }
+  .event-item p{ margin:0; font-size:13px; color:var(--grey); }
+
+  footer{
+    background:var(--charcoal); color:var(--ivory-dim); padding:56px 32px 28px;
+  }
+  .footer-inner{ max-width:1240px; margin:0 auto; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid rgba(244,239,227,0.12); }
+  .footer-grid h5{ color:var(--brass-bright); font-size:12px; letter-spacing:0.15em; text-transform:uppercase; margin:0 0 16px; }
+  .footer-grid a{ display:block; font-size:13.5px; color:var(--ivory-dim); margin-bottom:10px; opacity:0.85; }
+  .footer-grid a:hover{ opacity:1; color:var(--brass-bright); }
+  .footer-bottom{ display:flex; justify-content:space-between; padding-top:22px; font-size:12px; color:var(--grey); flex-wrap:wrap; gap:8px; }
+
+  @media (max-width:900px){
+    nav.links, .login-btn{ display:none; }
+    .nav-toggle{ display:block; }
+    .two-col{ grid-template-columns:1fr; }
+    .footer-grid{ grid-template-columns:1fr 1fr; }
+    .card-row{ grid-template-columns:44px 1fr; }
+    .card-row .meta, .card-row .arrow{ display:none; }
+    .stats-inner{ grid-template-columns:1fr 1fr; }
+    .gallery{ height:200px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-wrap">
+    <div class="brand">
+      <span class="name">AUGUSTA GOLF HOMES</span>
+      <span class="towers">Towers III · IV · V</span>
+    </div>
+    <nav class="links">
+      <a href="#directory">Directory</a>
+      <a href="#access">Access</a>
+      <a href="#vehicles">Vehicles</a>
+      <a href="#documents">Documents</a>
+      <a href="#governance">Governance</a>
+      <a href="#finance">Finance</a>
+      <a href="#events">Events</a>
+    </nav>
+    <a class="login-btn" href="#">Resident Login</a>
+    <div class="nav-toggle">&#9776;</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Association of Apartment Owners &mdash; Private Resident Portal</div>
+    <h1>Every record of home,<br>held to <em>par</em>.</h1>
+    <p class="lede">One address for ownership, access, finances and governance across Towers 3, 4 and 5 &mdash; built for owners, tenants, the Board, and the Facility Management Group alike.</p>
+    <div class="hero-cta">
+      <a class="btn-primary" href="#">Sign in to your account</a>
+      <a class="btn-ghost" href="#directory">Explore the modules</a>
+    </div>
+
+    <div class="gallery" id="gallery">
+      <div class="frame active"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=80" alt="Augusta Golf Homes towers at dusk"><div class="cap">The Towers — Evening</div></div>
+      <div class="frame"><img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=900&q=80" alt="Golf course fairway view"><div class="cap">The Fairway View</div></div>
+      <div class="frame"><img src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80" alt="Lobby interior"><div class="cap">Tower Lobby</div></div>
+      <div class="frame"><img src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=900&q=80" alt="Clubhouse and pool"><div class="cap">Clubhouse &amp; Pool</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat"><div class="value mono">03</div><div class="label">Towers Live on Portal</div></div>
+    <div class="stat"><div class="value mono">36</div><div class="label">Apartments, 4,700 sq ft each</div></div>
+    <div class="stat"><div class="value mono">07</div><div class="label">Managed Modules</div></div>
+    <div class="stat"><div class="value mono">24/7</div><div class="label">FMG Gate &amp; Facility Coverage</div></div>
+  </div>
+</div>
+
+<section class="block" id="directory">
+  <div class="section-head">
+    <div>
+      <div class="tag">The Scorecard</div>
+      <h2>Seven modules, one ledger</h2>
+    </div>
+    <p>Every function of daily life at Augusta &mdash; from who lives where, to who's on shift at the gate &mdash; recorded module by module, the way a scorecard tracks every hole.</p>
+  </div>
+
+  <div class="scorecard">
+    <a class="card-row" href="#directory">
+      <div class="num mono">01</div>
+      <div><p class="title">Resident Directory</p><p class="desc">Ownership and occupancy status &mdash; Owner, Tenant, or Vacant &mdash; for every apartment.</p></div>
+      <div class="meta">36 <span class="status">RECORDS</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#access">
+      <div class="num mono">02</div>
+      <div><p class="title">Access &amp; Personnel</p><p class="desc">IDs for domestic help and FMG staff &mdash; guards, housekeeping, supervisors, technicians.</p></div>
+      <div class="meta"><span class="status">FMG SYNCED</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#vehicles">
+      <div class="num mono">03</div>
+      <div><p class="title">Vehicles &amp; Parking</p><p class="desc">Registered vehicles for residents and staff, with allotted parking slots.</p></div>
+      <div class="meta"><span class="status">LIVE</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#documents">
+      <div class="num mono">04</div>
+      <div><p class="title">Document Repository</p><p class="desc">Lease agreements with expiry tracking, and NOCs issued by the AOA.</p></div>
+      <div class="meta"><span class="status">4 EXPIRING</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#governance">
+      <div class="num mono">05</div>
+      <div><p class="title">AOA Governance</p><p class="desc">About the AOA and BOM, with minutes of AGM/GBM, BOM, and monthly FMG meetings.</p></div>
+      <div class="meta"><span class="status">UP TO DATE</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#finance">
+      <div class="num mono">06</div>
+      <div><p class="title">Finance &amp; Accounts</p><p class="desc">Payments and dues, plus Gym, extra parking, and annual charges accounts.</p></div>
+      <div class="meta"><span class="status">SEE BELOW</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+    <a class="card-row" href="#events">
+      <div class="num mono">07</div>
+      <div><p class="title">Community Events</p><p class="desc">Upcoming events, notices, and gatherings across the three towers.</p></div>
+      <div class="meta"><span class="status">2 UPCOMING</span></div>
+      <div class="arrow">&#8594;</div>
+    </a>
+  </div>
+</section>
+
+<section class="block" id="finance">
+  <div class="section-head">
+    <div>
+      <div class="tag">Finance &amp; Accounts</div>
+      <h2>Every account, reconciled</h2>
+    </div>
+    <p>Owner-level statements and AOA-level consolidated reports, drawn from the same ledger.</p>
+  </div>
+  <div class="two-col">
+    <div class="info-card">
+      <h3>Consolidated Ledger</h3>
+      <div class="row"><span>Payments received (this quarter)</span><span class="mono">&#8377; 41,20,000</span></div>
+      <div class="row"><span>Dues outstanding</span><span class="mono">&#8377; 3,85,000</span></div>
+      <div class="row"><span>Gym account balance</span><span class="mono">&#8377; 2,10,500</span></div>
+      <div class="row"><span>Extra parking account</span><span class="mono">&#8377; 96,000</span></div>
+      <div class="row"><span>Annual charges collected</span><span class="mono">&#8377; 33,40,000</span></div>
+    </div>
+    <div class="info-card" id="events">
+      <h3>Upcoming Events</h3>
+      <div class="event-item">
+        <div class="event-date mono">02 AUG</div>
+        <div><h4>Quarterly GBM</h4><p>Clubhouse, Tower 4 &mdash; 6:30 PM</p></div>
+      </div>
+      <div class="event-item">
+        <div class="event-date mono">15 AUG</div>
+        <div><h4>Independence Day Gathering</h4><p>Central Lawn &mdash; 9:00 AM</p></div>
+      </div>
+      <div class="event-item">
+        <div class="event-date mono">30 AUG</div>
+        <div><h4>Monthly FMG Review</h4><p>AOA Office &mdash; 11:00 AM</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="governance">
+  <div class="section-head">
+    <div>
+      <div class="tag">Governance</div>
+      <h2>AOA &amp; Board of Management</h2>
+    </div>
+    <p>Minutes of every AGM, GBM, BOM, and monthly FMG meeting, archived and searchable.</p>
+  </div>
+  <div class="two-col">
+    <div class="info-card">
+      <h3>Recent Minutes</h3>
+      <div class="row"><span>AGM &mdash; Annual General Meeting</span><span>12 Jun 2026</span></div>
+      <div class="row"><span>BOM Meeting</span><span>04 Jul 2026</span></div>
+      <div class="row"><span>FMG Monthly Review</span><span>30 Jun 2026</span></div>
+      <div class="row"><span>GBM &mdash; Facade Repainting</span><span>18 May 2026</span></div>
+    </div>
+    <div class="info-card">
+      <h3>Board of Management</h3>
+      <div class="row"><span>President</span><span>Tower 3</span></div>
+      <div class="row"><span>Secretary</span><span>Tower 4</span></div>
+      <div class="row"><span>Treasurer</span><span>Tower 5</span></div>
+      <div class="row"><span>FMG Coordinator</span><span>All Towers</span></div>
+    </div>
+  </div>
+</section>
+
+<footer id="access">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <h5>Augusta Golf Homes</h5>
+        <p style="font-size:13.5px; color:var(--ivory-dim); max-width:280px; line-height:1.6;">Towers 3, 4 and 5 &mdash; a private resident portal maintained by the Association of Apartment Owners.</p>
+      </div>
+      <div>
+        <h5>Modules</h5>
+        <a href="#directory">Resident Directory</a>
+        <a href="#access">Access &amp; Personnel</a>
+        <a href="#vehicles">Vehicles &amp; Parking</a>
+        <a href="#documents">Documents</a>
+      </div>
+      <div>
+        <h5>Community</h5>
+        <a href="#governance">AOA Governance</a>
+        <a href="#finance">Finance &amp; Accounts</a>
+        <a href="#events">Events</a>
+      </div>
+      <div>
+        <h5>Support</h5>
+        <a href="#">AOA Office</a>
+        <a href="#">FMG Helpdesk</a>
+        <a href="#">Report an Issue</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Augusta Golf Homes AOA. For residents of Towers 3, 4 &amp; 5 only.</span>
+      <span>Design v1.0</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const frames = document.querySelectorAll('#gallery .frame');
+  let idx = 0;
+  setInterval(() => {
+    frames[idx].classList.remove('active');
+    idx = (idx + 1) % frames.length;
+    frames[idx].classList.add('active');
+  }, 3200);
+</script>
+
+</body>
+</html>

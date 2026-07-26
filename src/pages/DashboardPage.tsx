@@ -372,10 +372,10 @@ export function DashboardPage() {
                 <h2>Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}</h2>
                 <p>
                   {isAdmin
-                    ? 'Full administrator access to all Augusta Golf Homes society records.'
+                    ? 'AOA administrator access — all seven modules across Towers 3, 4 and 5.'
                     : isOwner
-                      ? `View-only access for flat ${apartmentNo || '—'} — your record and tenant details (lease, staff, vehicles).`
-                      : `View-only access for apartment ${apartmentNo || '—'} — your records only.`}
+                      ? `Owner access for ${apartmentNo || '—'} — directory, access, vehicles, documents, and accounts for your flat.`
+                      : `Tenant access for ${apartmentNo || '—'} — your occupancy record and assigned modules.`}
                 </p>
               </div>
               {!isAdmin && apartmentNo && <div className="welcome-apartment">{apartmentNo}</div>}
