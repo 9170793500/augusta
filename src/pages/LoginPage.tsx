@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { isSupabaseConfigured, supabaseProjectRef } from '../lib/supabase'
 import { AuthFooter, formatAuthError } from '../components/AuthFooter'
@@ -90,13 +90,16 @@ export function LoginPage() {
             <button type="button" onClick={() => scrollTo('#access')}>Access</button>
             <button type="button" onClick={() => scrollTo('#vehicles')}>Vehicles</button>
             <button type="button" onClick={() => scrollTo('#documents')}>Documents</button>
-            <button type="button" onClick={() => scrollTo('#governance')}>Governance</button>
             <button type="button" onClick={() => scrollTo('#finance')}>Finance</button>
-            <button type="button" onClick={() => scrollTo('#events')}>Events</button>
           </nav>
-          <button type="button" className="public-login-btn" onClick={openLogin}>
-            Resident Login
-          </button>
+          <div className="public-nav-actions">
+            <Link to="/add-details" className="public-add-details-btn">
+              Add Details
+            </Link>
+            <button type="button" className="public-login-btn" onClick={openLogin}>
+              Resident Login
+            </button>
+          </div>
         </div>
       </header>
 
