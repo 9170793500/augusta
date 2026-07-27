@@ -1,6 +1,127 @@
+import type { FlatResidentRow } from '../components/FlatResidentsForm'
 import { supabase } from '../lib/supabase'
 import { syncResidentKycDocuments } from './kycSync'
-import type { OccupancyRole, ResidentMaster } from '../lib/types'
+import type { Flat, OccupancyRole, ResidentMaster } from '../lib/types'
+
+function normApt(apt: string) {
+  return apt.trim().toUpperCase()
+}
+
+/** Old flats.owner_name / tenant_name rows that were never linked in flat_residents. */
+export function mergeLegacyFlatsResidents(
+  flatResidents: FlatResidentRow[],
+  flats: Flat[]
+): FlatResidentRow[] {
+  const merged = [...flatResidents]
+
+  for (const flat of flats) {
+    const apt = flat.apartment_no
+    const aptNorm = normApt(apt)
+
+    const hasOwnerLink = flatResidents.some(
+      (r) => normApt(r.apartment_no) === aptNorm && r.occupancy_role === 'owner'
+    )
+    if (!hasOwnerLink && flat.owner_name?.trim()) {
+      merged.push({
+        id: `legacy:${flat.id}:owner`,
+        apartment_no: apt,
+        resident_id: '',
+        occupancy_role: 'owner',
+        is_current: true,
+        move_in_date: null,
+        move_out_date: null,
+        notes: null,
+        created_at: flat.created_at,
+        resident: {
+          id: '',
+          full_name: flat.owner_name.trim(),
+          father_name: null,
+          aadhar_number: flat.owner_aadhar,
+          pan_number: null,
+          email: flat.owner_email,
+          mobile: flat.owner_phone,
+          alt_mobile: null,
+          notes: null,
+          created_at: flat.created_at,
+        },
+      })
+    }
+
+    const hasTenantLink = flatResidents.some(
+      (r) => normApt(r.apartment_no) === aptNorm && r.occupancy_role === 'tenant'
+    )
+    if (!hasTenantLink && flat.tenant_name?.trim()) {
+      merged.push({
+        id: `legacy:${flat.id}:tenant`,
+        apartment_no: apt,
+        resident_id: '',
+        occupancy_role: 'tenant',
+        is_current: true,
+        move_in_date: null,
+        move_out_date: null,
+        notes: null,
+        created_at: flat.created_at,
+        resident: {
+          id: '',
+          full_name: flat.tenant_name.trim(),
+          father_name: null,
+          aadhar_number: flat.tenant_aadhar,
+          pan_number: flat.tenant_pan,
+          email: flat.tenant_email,
+          mobile: flat.tenant_phone,
+          alt_mobile: null,
+          notes: null,
+          created_at: flat.created_at,
+        },
+      })
+    }
+  }
+
+  return merged
+}
+
+/** Include owner apartments that exist only in flat_residents (no flats row yet). */
+export function mergeOwnerFlats(flats: Flat[], flatResidents: FlatResidentRow[]): Flat[] {
+  const byApt = new Map<string, Flat>()
+  for (const flat of flats) {
+    byApt.set(normApt(flat.apartment_no), flat)
+  }
+
+  for (const row of flatResidents) {
+    if (row.occupancy_role !== 'owner') continue
+    const aptNorm = normApt(row.apartment_no)
+    if (byApt.has(aptNorm)) continue
+    byApt.set(aptNorm, {
+      id: `resident-flat:${row.id}`,
+      apartment_no: row.apartment_no,
+      tower: null,
+      floor: null,
+      owner_name: row.resident?.full_name || null,
+      owner_phone: row.resident?.mobile || null,
+      owner_email: row.resident?.email || null,
+      owner_aadhar: row.resident?.aadhar_number || null,
+      tenant_name: null,
+      tenant_phone: null,
+      tenant_email: null,
+      tenant_aadhar: null,
+      tenant_pan: null,
+      family_members: null,
+      occupancy_status: null,
+      status: null,
+      created_at: row.created_at,
+    })
+  }
+
+  return Array.from(byApt.values()).sort((a, b) => a.apartment_no.localeCompare(b.apartment_no))
+}
+
+export function isLegacyResidentId(id: string) {
+  return id.startsWith('legacy:')
+}
+
+export function isSyntheticFlatId(id: string) {
+  return id.startsWith('resident-flat:') || id.startsWith('legacy:')
+}
 
 export type OwnerLink = {
   flatResidentId?: string

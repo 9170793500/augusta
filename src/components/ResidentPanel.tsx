@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { FormProps, OccupancyRole } from '../lib/types'
+import { apartmentShortNo } from '../lib/apartmentUtils'
 import { ApartmentField } from './ApartmentField'
 import type { FlatResidentRow } from './FlatResidentsForm'
 import {
   dedupeFlatResidents,
   emptyPerson,
   fetchOwnerForApartment,
+  isLegacyResidentId,
   savePersonToFlat,
   type PersonFields,
 } from '../lib/residentUtils'
+import { RowActionsMenu } from './RowActionsMenu'
 
 type Props = FormProps & {
   flatResidents: FlatResidentRow[]
@@ -207,53 +210,67 @@ export function ResidentPanel({
 
 export function ResidentsTable({
   rows,
+  onView,
+  onEdit,
   onDelete,
-  onSelect,
   selectedId,
-  readOnly,
+  canEdit,
+  showAll,
 }: {
   rows: FlatResidentRow[]
-  onDelete: (id: string) => void
-  onSelect: (id: string, apartmentNo: string) => void
+  onView: (id: string, apartmentNo: string) => void
+  onEdit?: (id: string, apartmentNo: string) => void
+  onDelete?: (id: string) => void
   selectedId: string | null
-  readOnly?: boolean
+  canEdit: boolean
+  showAll?: boolean
 }) {
-  const living = dedupeFlatResidents(rows)
-    .filter((r) => r.occupancy_role === 'tenant' || (r.occupancy_role === 'owner' && r.is_current))
+  const living = dedupeFlatResidents(rows).filter((r) =>
+    showAll
+      ? true
+      : r.occupancy_role === 'tenant' || (r.occupancy_role === 'owner' && r.is_current)
+  )
 
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Apartment</th>
+            <th>Aprt No</th>
+            <th>Cod</th>
             <th>Name</th>
             <th>Father</th>
             <th>Role</th>
-            <th>Mobile</th>
-            {!readOnly && <th>Actions</th>}
+            <th>Mob No</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {living.length === 0 ? (
-            <tr><td colSpan={readOnly ? 5 : 6} className="empty">No residents yet.</td></tr>
+            <tr><td colSpan={7} className="empty">No residents yet.</td></tr>
           ) : (
             living.map((r) => (
               <tr
                 key={r.id}
-                className={selectedId === r.id ? 'row-selected' : 'row-clickable'}
-                onClick={() => onSelect(r.id, r.apartment_no)}
+                className={selectedId === r.id ? 'row-selected' : undefined}
               >
+                <td><strong>{apartmentShortNo(r.apartment_no)}</strong></td>
                 <td>{r.apartment_no}</td>
                 <td>{r.resident?.full_name || '—'}</td>
                 <td>{r.resident?.father_name || '—'}</td>
-                <td><span className={`badge ${r.occupancy_role}`}>{r.occupancy_role === 'owner' ? 'Owner' : 'Tenant'}</span></td>
+                <td>
+                  <span className={`badge ${r.occupancy_role}`}>{r.occupancy_role === 'owner' ? 'Owner' : 'Tenant'}</span>
+                  {!r.is_current && <span className="badge expired" style={{ marginLeft: '0.35rem' }}>Moved out</span>}
+                  {isLegacyResidentId(r.id) && <span className="badge tenant" style={{ marginLeft: '0.35rem' }}>Legacy</span>}
+                </td>
                 <td>{r.resident?.mobile || '—'}</td>
-                {!readOnly && (
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button type="button" className="btn btn-danger" onClick={() => onDelete(r.id)}>Delete</button>
-                  </td>
-                )}
+                <td>
+                  <RowActionsMenu
+                    onView={() => onView(r.id, r.apartment_no)}
+                    onEdit={canEdit && onEdit ? () => onEdit(r.id, r.apartment_no) : undefined}
+                    onDelete={canEdit && onDelete && !isLegacyResidentId(r.id) ? () => onDelete(r.id) : undefined}
+                  />
+                </td>
               </tr>
             ))
           )}

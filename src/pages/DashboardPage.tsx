@@ -22,7 +22,8 @@ import { MaidForm } from '../components/MaidForm'
 import { SecurityForm } from '../components/SecurityForm'
 import { OwnerPanel, OwnerTable } from '../components/OwnerPanel'
 import { ResidentPanel, ResidentsTable } from '../components/ResidentPanel'
-import { dedupeFlatResidents } from '../lib/residentUtils'
+import { dedupeFlatResidents, mergeLegacyFlatsResidents, mergeOwnerFlats } from '../lib/residentUtils'
+import { apartmentShortNo, matchesTowerFilter } from '../lib/apartmentUtils'
 import { syncAllResidentsKyc } from '../lib/kycSync'
 import { invalidateApartmentSuggestions } from '../lib/apartmentSuggestions'
 import {
@@ -86,19 +87,25 @@ const FORM_LABELS: Partial<Record<TabId, string>> = {
   documents: 'KYC Document',
 }
 
-function formModalTitle(tab: TabId, isEdit: boolean) {
+function formModalTitle(tab: TabId, mode: 'add' | 'edit' | 'view') {
   const label = FORM_LABELS[tab] || 'Record'
-  return isEdit ? `Edit ${label}` : `Add ${label}`
+  if (mode === 'view') return `View ${label}`
+  return mode === 'edit' ? `Edit ${label}` : `Add ${label}`
 }
+
+type FormMode = 'add' | 'edit' | 'view'
 
 export function DashboardPage() {
   const { profile, isAdmin, isOwner, isTenant, apartmentNo } = useAuth()
   const lockApartment = !isAdmin
   const [tab, setTab] = useState<TabId>('overview')
   const [search, setSearch] = useState('')
+  const [towerFilter, setTowerFilter] = useState('')
   const [busy, setBusy] = useState(false)
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<FormMode>('add')
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [flats, setFlats] = useState<Flat[]>([])
   const [flatResidents, setFlatResidents] = useState<FlatResidentRow[]>([])
@@ -177,6 +184,11 @@ export function DashboardPage() {
     ])
     const [fRes, frRes, lRes, vRes, rRes, dRes, mRes, pRes, duesRes, nocRes, docRes, alertRes] = results
 
+    const errors: string[] = []
+    if (fRes.error) errors.push(`Flats: ${fRes.error.message}`)
+    if (frRes.error) errors.push(`Residents: ${frRes.error.message}`)
+    setLoadError(errors.length ? errors.join(' · ') : null)
+
     if (fRes.data) setFlats(fRes.data)
     const residentRows = (frRes.data || []) as FlatResidentRow[]
     if (frRes.data) setFlatResidents(residentRows)
@@ -244,6 +256,14 @@ export function DashboardPage() {
     () => scopeResidentsForRole(flatResidents, scopeOpts),
     [flatResidents, scopeOpts]
   )
+  const displayFlatResidents = useMemo(
+    () => mergeLegacyFlatsResidents(scopedFlatResidents, scopedFlats),
+    [scopedFlatResidents, scopedFlats]
+  )
+  const displayOwnerFlats = useMemo(
+    () => mergeOwnerFlats(scopedFlats, displayFlatResidents),
+    [scopedFlats, displayFlatResidents]
+  )
   const scopedLeases = useMemo(() => scopeLeasesForRole(leases, scopeOpts), [leases, scopeOpts])
   const scopedVehicles = useMemo(() => scopeHouseholdForRole(vehicles, scopeOpts), [vehicles, scopeOpts])
   const scopedRfids = useMemo(() => scopeHouseholdForRole(rfids, scopeOpts), [rfids, scopeOpts])
@@ -254,9 +274,18 @@ export function DashboardPage() {
   const scopedNoc = useMemo(() => scopeNocForRole(noc, scopeOpts), [noc, scopeOpts])
   const scopedDocs = useMemo(() => scopeDocumentsForRole(documents, scopeOpts), [documents, scopeOpts])
 
-  const filteredRfids = useMemo(() => scopedRfids.filter((r) => match([r.apartment_no, r.vehicle_no, r.rfid_no, r.status])), [scopedRfids, q])
-  const filteredDrivers = useMemo(() => scopedDrivers.filter((r) => match([r.apartment_no, r.vehicle_no, r.driver_name, r.mobile])), [scopedDrivers, q])
-  const filteredMaids = useMemo(() => scopedMaids.filter((r) => match([r.apartment_no, r.name, r.card_number, r.employment_type])), [scopedMaids, q])
+  const filteredRfids = useMemo(
+    () => scopedRfids.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.vehicle_no, r.rfid_no, r.status])),
+    [scopedRfids, q, towerFilter]
+  )
+  const filteredDrivers = useMemo(
+    () => scopedDrivers.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.vehicle_no, r.driver_name, r.mobile])),
+    [scopedDrivers, q, towerFilter]
+  )
+  const filteredMaids = useMemo(
+    () => scopedMaids.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.name, r.card_number, r.employment_type])),
+    [scopedMaids, q, towerFilter]
+  )
   const filteredSecurity = useMemo(() => security.filter((r) => match([r.name, r.mobile, r.employee_type])), [security, q])
   useEffect(() => {
     if (lockApartment && apartmentNo) setSelectedFlat(apartmentNo)
@@ -264,31 +293,62 @@ export function DashboardPage() {
 
   const filteredFlats = useMemo(
     () =>
-      scopedFlats.filter((r) => {
-        const owner = scopedFlatResidents.find((fr) => fr.apartment_no === r.apartment_no && fr.occupancy_role === 'owner')
-        return match([r.apartment_no, r.tower, owner?.resident?.full_name, owner?.resident?.mobile])
+      displayOwnerFlats.filter((r) => {
+        if (!matchesTowerFilter(towerFilter, r.apartment_no, r.tower)) return false
+        const owner = displayFlatResidents.find(
+          (fr) => fr.apartment_no.trim().toUpperCase() === r.apartment_no.trim().toUpperCase() && fr.occupancy_role === 'owner'
+        )
+        return match([
+          r.apartment_no,
+          apartmentShortNo(r.apartment_no),
+          r.tower,
+          r.owner_name,
+          owner?.resident?.full_name,
+          owner?.resident?.mobile,
+          r.owner_phone,
+        ])
       }),
-    [scopedFlats, scopedFlatResidents, q]
+    [displayOwnerFlats, displayFlatResidents, q, towerFilter]
   )
   const filteredResidents = useMemo(
     () =>
-      dedupeFlatResidents(scopedFlatResidents).filter((r) =>
-        match([
+      dedupeFlatResidents(displayFlatResidents).filter((r) => {
+        if (!matchesTowerFilter(towerFilter, r.apartment_no)) return false
+        return match([
           r.apartment_no,
+          apartmentShortNo(r.apartment_no),
           r.occupancy_role,
           r.resident?.full_name,
           r.resident?.mobile,
           r.resident?.father_name,
         ])
-      ),
-    [scopedFlatResidents, q]
+      }),
+    [displayFlatResidents, q, towerFilter]
   )
-  const filteredLeases = useMemo(() => scopedLeases.filter((r) => match([r.apartment_no, r.tenant_name, r.status])), [scopedLeases, q])
-  const filteredVehicles = useMemo(() => scopedVehicles.filter((r) => match([r.apartment_no, r.vehicle_no, r.make_model])), [scopedVehicles, q])
-  const filteredParking = useMemo(() => scopedParking.filter((r) => match([r.apartment_no, r.parking_slot])), [scopedParking, q])
-  const filteredDues = useMemo(() => scopedDues.filter((r) => match([r.apartment_no, r.year, r.receipt_no])), [scopedDues, q])
-  const filteredNoc = useMemo(() => scopedNoc.filter((r) => match([r.apartment_no, r.tenant_name, r.receipt_no])), [scopedNoc, q])
-  const filteredDocs = useMemo(() => scopedDocs.filter((r) => match([r.apartment_no, r.document_type, r.holder_name])), [scopedDocs, q])
+  const filteredLeases = useMemo(
+    () => scopedLeases.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.tenant_name, r.status])),
+    [scopedLeases, q, towerFilter]
+  )
+  const filteredVehicles = useMemo(
+    () => scopedVehicles.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.vehicle_no, r.make_model])),
+    [scopedVehicles, q, towerFilter]
+  )
+  const filteredParking = useMemo(
+    () => scopedParking.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.parking_slot])),
+    [scopedParking, q, towerFilter]
+  )
+  const filteredDues = useMemo(
+    () => scopedDues.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.year, r.receipt_no])),
+    [scopedDues, q, towerFilter]
+  )
+  const filteredNoc = useMemo(
+    () => scopedNoc.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.tenant_name, r.receipt_no])),
+    [scopedNoc, q, towerFilter]
+  )
+  const filteredDocs = useMemo(
+    () => scopedDocs.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.document_type, r.holder_name])),
+    [scopedDocs, q, towerFilter]
+  )
 
   async function removeRow(table: string, id: string) {
     if (!confirm('Delete this record?')) return
@@ -301,39 +361,55 @@ export function DashboardPage() {
   }
 
   const viewOnly = !isAdmin
+  const formReadOnly = viewOnly || formMode === 'view'
   const formProps = {
     onSaved: refresh,
     apartmentNo,
     lockApartment,
     isAdmin,
-    readOnly: viewOnly,
+    readOnly: formReadOnly,
   }
 
   function handleTabChange(next: TabId) {
     setTab(next)
     setSearch('')
+    setTowerFilter('')
     setFormOpen(false)
+    setFormMode('add')
   }
 
   function openAddForm() {
     setSelectedFlat(null)
     setEditingResidentId(null)
+    setFormMode('add')
     setFormOpen(true)
   }
 
   function closeFormModal() {
     setFormOpen(false)
     setEditingResidentId(null)
+    setFormMode('add')
   }
 
   function handleFormSaved() {
     refresh()
     setFormOpen(false)
     setEditingResidentId(null)
+    setFormMode('add')
   }
 
-  const formModalEdit =
-    (tab === 'owner' && !!selectedFlat) || (tab === 'residents' && !!editingResidentId)
+  function openOwnerRecord(apartmentNo: string, mode: FormMode) {
+    setSelectedFlat(apartmentNo)
+    setFormMode(mode)
+    setFormOpen(true)
+  }
+
+  function openResidentRecord(id: string, apartmentNo: string, mode: FormMode) {
+    setEditingResidentId(id)
+    setSelectedFlat(apartmentNo)
+    setFormMode(mode)
+    setFormOpen(true)
+  }
 
   const quickLinks: { id: TabId; label: string; count: number | string; desc: string }[] = [
     ...(isOwner || isAdmin ? [{ id: 'owner' as TabId, label: 'Owner', count: scopedFlats.length, desc: 'Your flat owner record' }] : []),
@@ -528,23 +604,43 @@ export function DashboardPage() {
                   </div>
                 </div>
               )}
+              {loadError && (
+                <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+                  Database load failed: {loadError}. Check Supabase login / RLS policies, then click Refresh.
+                </div>
+              )}
               <div className="list-toolbar">
-                <div className="search-field">
-                  <svg className="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                    <path
-                      d="M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
+                <div className="list-toolbar-left">
+                  <div className="search-field">
+                    <svg className="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                      />
+                      <path d="M13.5 13.5 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      type="search"
+                      className="search"
+                      placeholder="Search records…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
                     />
-                    <path d="M13.5 13.5 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    type="search"
-                    className="search"
-                    placeholder="Search records…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+                  </div>
+                  {(tab === 'owner' || tab === 'residents') && (
+                    <select
+                      className="tower-filter"
+                      value={towerFilter}
+                      onChange={(e) => setTowerFilter(e.target.value)}
+                      aria-label="Filter by tower"
+                    >
+                      <option value="">All Towers</option>
+                      <option value="3">Tower 3</option>
+                      <option value="4">Tower 4</option>
+                      <option value="5">Tower 5</option>
+                    </select>
+                  )}
                 </div>
                 {isAdmin && FORM_TABS.includes(tab) && (
                   <button type="button" className="btn btn-primary btn-add" onClick={openAddForm}>
@@ -556,27 +652,23 @@ export function DashboardPage() {
               {tab === 'owner' && (
                 <OwnerTable
                   rows={filteredFlats}
-                    flatResidents={scopedFlatResidents}
+                  flatResidents={displayFlatResidents}
                   selectedApartment={selectedFlat}
-                  onSelect={(apt) => {
-                    setSelectedFlat(apt)
-                    if (isAdmin) setFormOpen(true)
-                  }}
-                  onDelete={(id) => removeRow('flats', id)}
-                  canDelete={isAdmin}
+                  onView={(apt) => openOwnerRecord(apt, 'view')}
+                  onEdit={isAdmin ? (apt) => openOwnerRecord(apt, 'edit') : undefined}
+                  onDelete={isAdmin ? (id) => removeRow('flats', id) : undefined}
+                  canEdit={isAdmin}
                 />
               )}
               {tab === 'residents' && (
                 <ResidentsTable
                   rows={filteredResidents}
                   selectedId={editingResidentId}
-                  onSelect={(id, apt) => {
-                    setEditingResidentId(id)
-                    setSelectedFlat(apt)
-                    if (isAdmin) setFormOpen(true)
-                  }}
-                  onDelete={(id) => removeRow('flat_residents', id)}
-                  readOnly={viewOnly}
+                  onView={(id, apt) => openResidentRecord(id, apt, 'view')}
+                  onEdit={isAdmin ? (id, apt) => openResidentRecord(id, apt, 'edit') : undefined}
+                  onDelete={isAdmin ? (id) => removeRow('flat_residents', id) : undefined}
+                  canEdit={isAdmin}
+                  showAll={isAdmin}
                 />
               )}
                 {tab === 'leases' && (
@@ -721,10 +813,10 @@ export function DashboardPage() {
         />
       )}
 
-      {isAdmin && formOpen && FORM_TABS.includes(tab) && (
+      {formOpen && FORM_TABS.includes(tab) && (isAdmin || formMode === 'view') && (
         <FormModal
-          key={`${tab}-${editingResidentId ?? 'add'}`}
-          title={formModalTitle(tab, formModalEdit)}
+          key={`${tab}-${formMode}-${editingResidentId ?? selectedFlat ?? 'add'}`}
+          title={formModalTitle(tab, formMode)}
           wide={tab === 'owner' || tab === 'residents'}
           onClose={closeFormModal}
         >
@@ -732,7 +824,7 @@ export function DashboardPage() {
             <OwnerPanel
               {...formProps}
               onSaved={handleFormSaved}
-                    flatResidents={scopedFlatResidents}
+              flatResidents={displayFlatResidents}
               selectedApartment={selectedFlat}
               onSelectApartment={setSelectedFlat}
             />
@@ -741,7 +833,7 @@ export function DashboardPage() {
             <ResidentPanel
               {...formProps}
               onSaved={handleFormSaved}
-                    flatResidents={scopedFlatResidents}
+              flatResidents={displayFlatResidents}
               selectedApartment={selectedFlat}
               onSelectApartment={setSelectedFlat}
               editingId={editingResidentId}

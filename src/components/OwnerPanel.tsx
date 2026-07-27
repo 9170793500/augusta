@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Flat, FormProps } from '../lib/types'
+import { apartmentShortNo } from '../lib/apartmentUtils'
 import { ApartmentField } from './ApartmentField'
 import type { FlatResidentRow } from './FlatResidentsForm'
 import { emptyPerson, savePersonToFlat, type PersonFields } from '../lib/residentUtils'
+import { RowActionsMenu } from './RowActionsMenu'
 
 type Props = FormProps & {
   flatResidents: FlatResidentRow[]
@@ -164,20 +166,25 @@ export function OwnerPanel({
 export function OwnerTable({
   rows,
   flatResidents,
+  onView,
+  onEdit,
   onDelete,
-  onSelect,
   selectedApartment,
-  canDelete,
+  canEdit,
 }: {
   rows: Flat[]
   flatResidents: FlatResidentRow[]
-  onDelete: (id: string) => void
-  onSelect: (apartmentNo: string) => void
+  onView: (apartmentNo: string) => void
+  onEdit?: (apartmentNo: string) => void
+  onDelete?: (id: string) => void
   selectedApartment: string | null
-  canDelete: boolean
+  canEdit: boolean
 }) {
   function ownerName(apt: string) {
-    const o = flatResidents.find((r) => r.apartment_no === apt && r.occupancy_role === 'owner')
+    const aptNorm = apt.trim().toUpperCase()
+    const o = flatResidents.find(
+      (r) => r.apartment_no.trim().toUpperCase() === aptNorm && r.occupancy_role === 'owner'
+    )
     return o?.resident?.full_name || '—'
   }
 
@@ -186,34 +193,38 @@ export function OwnerTable({
       <table>
         <thead>
           <tr>
-            <th>Apartment</th>
-            <th>Tower</th>
+            <th>Aprt No</th>
+            <th>Cod</th>
             <th>Owner Name</th>
-            <th>Mobile</th>
-            {canDelete && <th>Actions</th>}
+            <th>Mob No</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={canDelete ? 5 : 4} className="empty">No owners yet.</td></tr>
+            <tr><td colSpan={5} className="empty">No owners yet.</td></tr>
           ) : (
             rows.map((r) => {
               const o = flatResidents.find((fr) => fr.apartment_no === r.apartment_no && fr.occupancy_role === 'owner')
+              const displayName = ownerName(r.apartment_no)
+              const displayMobile = o?.resident?.mobile || r.owner_phone || '—'
+              const canDeleteRow = canEdit && onDelete && !r.id.startsWith('resident-flat:')
               return (
                 <tr
                   key={r.id}
-                  className={selectedApartment === r.apartment_no ? 'row-selected' : 'row-clickable'}
-                  onClick={() => onSelect(r.apartment_no)}
+                  className={selectedApartment === r.apartment_no ? 'row-selected' : undefined}
                 >
-                  <td><strong>{r.apartment_no}</strong></td>
-                  <td>{r.tower || '—'}</td>
-                  <td>{ownerName(r.apartment_no)}</td>
-                  <td>{o?.resident?.mobile || '—'}</td>
-                  {canDelete && (
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <button type="button" className="btn btn-danger" onClick={() => onDelete(r.id)}>Delete</button>
-                    </td>
-                  )}
+                  <td><strong>{apartmentShortNo(r.apartment_no)}</strong></td>
+                  <td>{r.apartment_no}</td>
+                  <td>{displayName !== '—' ? displayName : r.owner_name || '—'}</td>
+                  <td>{displayMobile}</td>
+                  <td>
+                    <RowActionsMenu
+                      onView={() => onView(r.apartment_no)}
+                      onEdit={canEdit && onEdit ? () => onEdit(r.apartment_no) : undefined}
+                      onDelete={canDeleteRow ? () => onDelete(r.id) : undefined}
+                    />
+                  </td>
                 </tr>
               )
             })

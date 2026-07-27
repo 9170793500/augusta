@@ -1751,6 +1751,33 @@ a:hover {
   margin-bottom: 0.85rem;
 }
 
+.list-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.tower-filter {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.58rem 0.85rem;
+  font-size: 0.9rem;
+  background: #fff;
+  color: var(--text);
+  min-width: 8.75rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  outline: none;
+  cursor: pointer;
+}
+
+.tower-filter:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(180, 134, 74, 0.15);
+}
+
 .search-field {
   position: relative;
   flex: 1;
@@ -1866,6 +1893,57 @@ tr:hover td {
 .actions {
   display: flex;
   gap: 0.35rem;
+}
+
+.row-actions {
+  position: relative;
+  display: inline-flex;
+}
+
+.row-actions-trigger {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.row-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 7.5rem;
+  padding: 0.35rem 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.row-actions-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.row-actions-menu button:hover {
+  background: var(--surface-muted, #f8f6f3);
+}
+
+.row-actions-menu button.danger {
+  color: var(--danger);
+}
+
+.row-actions-menu button.danger:hover {
+  background: var(--danger-bg);
 }
 
 .empty {
