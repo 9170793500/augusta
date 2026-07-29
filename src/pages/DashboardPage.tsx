@@ -79,7 +79,7 @@ const FORM_LABELS: Partial<Record<TabId, string>> = {
   vehicles: 'Vehicle',
   rfid: 'Vehicle RFID',
   driver: 'Driver',
-  maid: 'Maid',
+  maid: 'Domestic Help',
   security: 'Security Staff',
   parking: 'Parking & Gym',
   dues: 'Maintenance Due',
@@ -427,7 +427,7 @@ export function DashboardPage() {
       : [
           { id: 'leases' as TabId, label: 'Leases', count: scopedLeases.length, desc: 'Tenant lease details' },
           { id: 'vehicles' as TabId, label: 'Vehicles', count: scopedVehicles.length, desc: 'Flat vehicles' },
-          { id: 'maid' as TabId, label: 'Maids', count: scopedMaids.length, desc: 'Domestic staff' },
+          { id: 'maid' as TabId, label: 'Domestic Help', count: scopedMaids.length, desc: 'Domestic help staff' },
           { id: 'dues' as TabId, label: 'Dues', count: scopedDues.length, desc: 'Maintenance records' },
         ]),
   ]
@@ -598,7 +598,7 @@ export function DashboardPage() {
                     <strong>View only — {apartmentNo}</strong>
                     <p>
                       {isOwner
-                        ? 'Your flat data only — your owner record plus tenant details in Resident, Leases, Maids, and Drivers.'
+                        ? 'Your flat data only — your owner record plus tenant details in Resident, Leases, Domestic Help, and Drivers.'
                         : 'Only your own data is shown. Only the administrator can update records.'}
                     </p>
                   </div>
@@ -751,7 +751,7 @@ export function DashboardPage() {
                       <thead><tr><th>Apartment</th><th>Name</th><th>Type</th><th>Card No</th>{isAdmin && <th>Actions</th>}</tr></thead>
                       <tbody>
                         {filteredMaids.length === 0 ? (
-                          <tr><td colSpan={isAdmin ? 5 : 4} className="empty">No maid records yet.</td></tr>
+                          <tr><td colSpan={isAdmin ? 5 : 4} className="empty">No domestic help records yet.</td></tr>
                         ) : (
                           filteredMaids.map((row) => (
                             <tr key={row.id}>

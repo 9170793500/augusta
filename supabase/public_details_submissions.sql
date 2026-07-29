@@ -1,6 +1,45 @@
--- Public Add Details → writes into REAL society tables (security definer = no 401)
--- Run ALL of this in Supabase → SQL Editor → Run
--- Then try Submit again on /add-details
+-- Public Add Details -> writes into REAL society tables (security definer = no 401)
+-- Run ALL of this in Supabase -> SQL Editor -> Run
+-- Includes storage bucket for lease document uploads
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'lease-documents',
+  'lease-documents',
+  true,
+  10485760,
+  array[
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword'
+  ]
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "lease_documents_public_read" on storage.objects;
+create policy "lease_documents_public_read"
+  on storage.objects for select
+  using (bucket_id = 'lease-documents');
+
+drop policy if exists "lease_documents_upload" on storage.objects;
+create policy "lease_documents_upload"
+  on storage.objects for insert
+  with check (bucket_id = 'lease-documents');
+
+drop policy if exists "lease_documents_update" on storage.objects;
+create policy "lease_documents_update"
+  on storage.objects for update
+  using (bucket_id = 'lease-documents')
+  with check (bucket_id = 'lease-documents');
+
+alter table public.maids add column if not exists card_valid_from date;
+alter table public.drivers add column if not exists licence_valid_from date;
 
 create or replace function public.is_admin()
 returns boolean
@@ -38,6 +77,8 @@ declare
   v_gender public.staff_gender;
   v_employment public.employment_type;
   v_linked public.linked_to;
+  v_is_resident boolean;
+  v_occupancy text;
 begin
   if v_apt = '' then raise exception 'Apartment number is required'; end if;
   if p_category not in ('owner', 'tenant', 'lease', 'maid', 'driver', 'servant', 'vehicle') then
@@ -50,8 +91,12 @@ begin
         raise exception 'Owner full name is required';
       end if;
 
+      v_is_resident := coalesce((p_details->>'is_resident')::boolean, true);
+      v_occupancy := case when v_is_resident then 'owner_occupied' else 'vacant' end;
+
       insert into public.flats (
-        apartment_no, owner_name, owner_phone, owner_email, owner_aadhar, occupancy_status, status
+        apartment_no, owner_name, owner_phone, owner_email, owner_aadhar,
+        family_members, occupancy_status, status
       )
       values (
         v_apt,
@@ -59,16 +104,23 @@ begin
         nullif(trim(p_details->>'mobile'), ''),
         nullif(trim(p_details->>'email'), ''),
         nullif(trim(p_details->>'aadhar_number'), ''),
-        'owner_occupied',
-        'owner_occupied'
+        nullif(trim(p_details->>'family_members'), '')::int,
+        v_occupancy,
+        v_occupancy
       )
       on conflict (apartment_no) do update set
         owner_name = excluded.owner_name,
         owner_phone = excluded.owner_phone,
         owner_email = excluded.owner_email,
         owner_aadhar = excluded.owner_aadhar,
+        family_members = excluded.family_members,
         occupancy_status = excluded.occupancy_status,
         status = excluded.status;
+
+      if not v_is_resident then
+        select id into v_record_id from public.flats where apartment_no = v_apt;
+        return coalesce(v_record_id, gen_random_uuid());
+      end if;
 
       insert into public.resident_master (
         full_name, father_name, aadhar_number, pan_number, email, mobile, alt_mobile
@@ -126,6 +178,12 @@ begin
       values (v_apt, v_resident_id, 'tenant', true)
       returning id into v_record_id;
 
+      if coalesce(trim(p_details->>'family_members'), '') <> '' then
+        update public.flats
+        set family_members = trim(p_details->>'family_members')::int
+        where apartment_no = v_apt;
+      end if;
+
       return v_record_id;
 
     when 'lease' then
@@ -140,7 +198,7 @@ begin
       end if;
 
       insert into public.leases (
-        apartment_no, tenant_name, lease_start, lease_end, status, notes
+        apartment_no, tenant_name, lease_start, lease_end, status, notes, document_url
       )
       values (
         v_apt,
@@ -148,7 +206,8 @@ begin
         trim(p_details->>'lease_start')::date,
         trim(p_details->>'lease_end')::date,
         coalesce(nullif(trim(p_details->>'status'), ''), 'active')::public.lease_status,
-        nullif(trim(p_details->>'notes'), '')
+        nullif(trim(p_details->>'notes'), ''),
+        nullif(trim(p_details->>'document_url'), '')
       )
       returning id into v_record_id;
 
@@ -176,7 +235,7 @@ begin
 
       insert into public.maids (
         apartment_no, name, age, gender, employment_type,
-        aadhar_number, mobile, card_number, employment_valid_till, notes
+        aadhar_number, mobile, card_number, card_valid_from, employment_valid_till, notes
       )
       values (
         v_apt,
@@ -187,6 +246,7 @@ begin
         trim(p_details->>'aadhar_number'),
         nullif(trim(p_details->>'mobile'), ''),
         trim(p_details->>'card_number'),
+        nullif(trim(p_details->>'card_valid_from'), '')::date,
         nullif(trim(p_details->>'employment_valid_till'), '')::date,
         v_notes
       )
@@ -201,7 +261,7 @@ begin
 
       insert into public.drivers (
         apartment_no, vehicle_no, driver_name, mobile,
-        licence_number, licence_validity, aadhar_number, address, notes
+        licence_number, licence_valid_from, licence_validity, aadhar_number, address, notes
       )
       values (
         v_apt,
@@ -209,6 +269,7 @@ begin
         trim(p_details->>'driver_name'),
         nullif(trim(p_details->>'mobile'), ''),
         nullif(trim(p_details->>'licence_number'), ''),
+        nullif(trim(p_details->>'licence_valid_from'), '')::date,
         nullif(trim(p_details->>'licence_validity'), '')::date,
         nullif(trim(p_details->>'aadhar_number'), ''),
         nullif(trim(p_details->>'address'), ''),
@@ -255,7 +316,6 @@ begin
 end;
 $$;
 
--- Allow anonymous public form to call this function
 revoke all on function public.submit_public_detail(uuid, text, text, text, text, jsonb) from public;
 grant execute on function public.submit_public_detail(uuid, text, text, text, text, jsonb) to anon, authenticated;
 
@@ -297,29 +357,45 @@ begin
         owner_name = trim(p_details->>'full_name'),
         owner_phone = nullif(trim(p_details->>'mobile'), ''),
         owner_email = nullif(trim(p_details->>'email'), ''),
-        owner_aadhar = nullif(trim(p_details->>'aadhar_number'), '')
+        owner_aadhar = nullif(trim(p_details->>'aadhar_number'), ''),
+        family_members = nullif(trim(p_details->>'family_members'), '')::int,
+        occupancy_status = case
+          when coalesce((p_details->>'is_resident')::boolean, true) then 'owner_occupied'
+          else 'vacant'
+        end,
+        status = case
+          when coalesce((p_details->>'is_resident')::boolean, true) then 'owner_occupied'
+          else 'vacant'
+        end
       where apartment_no = v_apt;
 
       select resident_id into v_resident_id
       from public.flat_residents
       where id = p_record_id;
 
-      if v_resident_id is null then
-        raise exception 'Owner record not found';
+      if v_resident_id is not null then
+        update public.resident_master set
+          full_name = trim(p_details->>'full_name'),
+          father_name = nullif(trim(p_details->>'father_name'), ''),
+          aadhar_number = nullif(trim(p_details->>'aadhar_number'), ''),
+          pan_number = nullif(upper(trim(p_details->>'pan_number')), ''),
+          email = nullif(trim(p_details->>'email'), ''),
+          mobile = nullif(trim(p_details->>'mobile'), ''),
+          alt_mobile = nullif(trim(p_details->>'alt_mobile'), '')
+        where id = v_resident_id;
+
+        update public.flat_residents set is_current = true where id = p_record_id;
+        return p_record_id;
       end if;
 
-      update public.resident_master set
-        full_name = trim(p_details->>'full_name'),
-        father_name = nullif(trim(p_details->>'father_name'), ''),
-        aadhar_number = nullif(trim(p_details->>'aadhar_number'), ''),
-        pan_number = nullif(upper(trim(p_details->>'pan_number')), ''),
-        email = nullif(trim(p_details->>'email'), ''),
-        mobile = nullif(trim(p_details->>'mobile'), ''),
-        alt_mobile = nullif(trim(p_details->>'alt_mobile'), '')
-      where id = v_resident_id;
+      if exists (
+        select 1 from public.flats
+        where id = p_record_id and apartment_no = v_apt
+      ) then
+        return p_record_id;
+      end if;
 
-      update public.flat_residents set is_current = true where id = p_record_id;
-      return p_record_id;
+      raise exception 'Owner record not found';
 
     when 'tenant' then
       if coalesce(trim(p_details->>'full_name'), '') = '' then
@@ -344,6 +420,12 @@ begin
         alt_mobile = nullif(trim(p_details->>'alt_mobile'), '')
       where id = v_resident_id;
 
+      if coalesce(trim(p_details->>'family_members'), '') <> '' then
+        update public.flats
+        set family_members = trim(p_details->>'family_members')::int
+        where apartment_no = v_apt;
+      end if;
+
       return p_record_id;
 
     when 'lease' then
@@ -363,7 +445,8 @@ begin
         lease_start = trim(p_details->>'lease_start')::date,
         lease_end = trim(p_details->>'lease_end')::date,
         status = coalesce(nullif(trim(p_details->>'status'), ''), 'active')::public.lease_status,
-        notes = nullif(trim(p_details->>'notes'), '')
+        notes = nullif(trim(p_details->>'notes'), ''),
+        document_url = nullif(trim(p_details->>'document_url'), '')
       where id = p_record_id;
 
       if not found then raise exception 'Lease record not found'; end if;
@@ -398,11 +481,12 @@ begin
         aadhar_number = trim(p_details->>'aadhar_number'),
         mobile = nullif(trim(p_details->>'mobile'), ''),
         card_number = trim(p_details->>'card_number'),
+        card_valid_from = nullif(trim(p_details->>'card_valid_from'), '')::date,
         employment_valid_till = nullif(trim(p_details->>'employment_valid_till'), '')::date,
         notes = v_notes
       where id = p_record_id;
 
-      if not found then raise exception 'Maid/servant record not found'; end if;
+      if not found then raise exception 'Domestic help record not found'; end if;
       return p_record_id;
 
     when 'driver' then
@@ -416,6 +500,7 @@ begin
         driver_name = trim(p_details->>'driver_name'),
         mobile = nullif(trim(p_details->>'mobile'), ''),
         licence_number = nullif(trim(p_details->>'licence_number'), ''),
+        licence_valid_from = nullif(trim(p_details->>'licence_valid_from'), '')::date,
         licence_validity = nullif(trim(p_details->>'licence_validity'), '')::date,
         aadhar_number = nullif(trim(p_details->>'aadhar_number'), ''),
         address = nullif(trim(p_details->>'address'), ''),

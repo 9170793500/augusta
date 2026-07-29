@@ -3220,3 +3220,27 @@ tr.row-selected td {
   }
 }
 
+.lease-upload-block {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.lease-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.lease-file-input {
+  max-width: 100%;
+}
+
+.lease-file-meta {
+  margin-top: 0.5rem;
+}
+

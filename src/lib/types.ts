@@ -135,6 +135,7 @@ export type Driver = {
   driver_name: string
   mobile: string | null
   licence_number: string | null
+  licence_valid_from: string | null
   licence_validity: string | null
   aadhar_number: string | null
   address: string | null
@@ -152,6 +153,7 @@ export type Maid = {
   aadhar_number: string
   mobile: string | null
   card_number: string | null
+  card_valid_from: string | null
   employment_valid_till: string | null
   notes: string | null
   created_at: string

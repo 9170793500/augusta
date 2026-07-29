@@ -1,25 +1,24 @@
 import { supabase } from './supabase'
 import type { EmploymentType, StaffGender } from './types'
 
-type PublicDetailCategory = 'owner' | 'tenant' | 'lease' | 'maid' | 'driver' | 'servant' | 'vehicle'
+type PublicDetailCategory = 'owner' | 'tenant' | 'lease' | 'maid' | 'driver' | 'vehicle'
 
 type PublicContact = {
   apartmentNo: string
   submitterName: string
   submitterMobile: string
-  livingAs?: 'owner' | 'tenant'
+  livingAs?: string
 }
 
 function str(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-function maidNotes(category: PublicDetailCategory, details: Record<string, unknown>) {
-  let notes = str(details.notes) || null
-  if (category === 'servant' && str(details.role)) {
-    notes = `Role: ${str(details.role)}${notes ? `; ${notes}` : ''}`
-  }
-  return notes
+function isResidentOwner(details: Record<string, unknown>) {
+  const raw = details.is_resident
+  if (typeof raw === 'boolean') return raw
+  if (raw === 'false' || raw === '0') return false
+  return true
 }
 
 /** Direct table writes (fallback only). Prefer submit_public_detail RPC. */
@@ -35,6 +34,9 @@ export async function submitPublicDetailDirect(
       const full_name = str(details.full_name)
       if (!full_name) throw new Error('Owner full name is required')
 
+      const resident = isResidentOwner(details)
+      const occupancy_status = resident ? 'owner_occupied' : 'vacant'
+
       const { error: flatErr } = await supabase.from('flats').upsert(
         {
           apartment_no,
@@ -42,14 +44,17 @@ export async function submitPublicDetailDirect(
           owner_phone: str(details.mobile) || null,
           owner_email: str(details.email) || null,
           owner_aadhar: str(details.aadhar_number) || null,
-          occupancy_status: 'owner_occupied',
-          status: 'owner_occupied',
+          family_members: str(details.family_members) ? Number(details.family_members) : null,
+          occupancy_status,
+          status: occupancy_status,
         } as never,
         { onConflict: 'apartment_no' }
       )
       if (flatErr) throw flatErr
 
-      const { data: resident, error: resErr } = await supabase
+      if (!resident) return
+
+      const { data: residentRow, error: resErr } = await supabase
         .from('resident_master')
         .insert({
           full_name,
@@ -76,13 +81,13 @@ export async function submitPublicDetailDirect(
       if (existing?.id) {
         const { error } = await supabase
           .from('flat_residents')
-          .update({ resident_id: resident.id, is_current: true } as never)
+          .update({ resident_id: residentRow.id, is_current: true } as never)
           .eq('id', existing.id)
         if (error) throw error
       } else {
         const { error } = await supabase.from('flat_residents').insert({
           apartment_no,
-          resident_id: resident.id,
+          resident_id: residentRow.id,
           occupancy_role: 'owner',
           is_current: true,
         } as never)
@@ -117,11 +122,17 @@ export async function submitPublicDetailDirect(
         is_current: true,
       } as never)
       if (error) throw error
+
+      if (str(details.family_members)) {
+        await supabase
+          .from('flats')
+          .update({ family_members: Number(details.family_members) } as never)
+          .eq('apartment_no', apartment_no)
+      }
       return
     }
 
-    case 'maid':
-    case 'servant': {
+    case 'maid': {
       const name = str(details.name)
       const aadhar_number = str(details.aadhar_number)
       const card_number = str(details.card_number)
@@ -146,8 +157,9 @@ export async function submitPublicDetailDirect(
         aadhar_number,
         mobile: str(details.mobile) || null,
         card_number,
+        card_valid_from: str(details.card_valid_from) || null,
         employment_valid_till: str(details.employment_valid_till) || null,
-        notes: maidNotes(category, details),
+        notes: str(details.notes) || null,
       } as never)
       if (error) throw error
       return
@@ -163,6 +175,7 @@ export async function submitPublicDetailDirect(
         driver_name,
         mobile: str(details.mobile) || null,
         licence_number: str(details.licence_number) || null,
+        licence_valid_from: str(details.licence_valid_from) || null,
         licence_validity: str(details.licence_validity) || null,
         aadhar_number: str(details.aadhar_number) || null,
         address: str(details.address) || null,
@@ -207,6 +220,7 @@ export async function submitPublicDetailDirect(
         lease_end,
         status: str(details.status) || 'active',
         notes: str(details.notes) || null,
+        document_url: str(details.document_url) || null,
       } as never)
       if (error) throw error
       return

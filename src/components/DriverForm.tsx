@@ -9,6 +9,7 @@ type Row = {
   driver_name: string
   mobile: string
   licence_number: string
+  licence_valid_from: string
   licence_validity: string
   aadhar_number: string
   address: string
@@ -22,6 +23,7 @@ function blankRow(): Row {
     driver_name: '',
     mobile: '',
     licence_number: '',
+    licence_valid_from: '',
     licence_validity: '',
     aadhar_number: '',
     address: '',
@@ -65,6 +67,7 @@ export function DriverForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Pro
         driver_name: r.driver_name.trim(),
         mobile: r.mobile.trim() || null,
         licence_number: r.licence_number.trim() || null,
+        licence_valid_from: r.licence_valid_from || null,
         licence_validity: r.licence_validity || null,
         aadhar_number: r.aadhar_number.trim() || null,
         address: r.address.trim() || null,
@@ -145,7 +148,15 @@ export function DriverForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Pro
               />
             </div>
             <div className="field">
-              <label>Licence Validity</label>
+              <label>Licence Start Date</label>
+              <input
+                type="date"
+                value={row.licence_valid_from}
+                onChange={(e) => updateRow(row.key, { licence_valid_from: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Licence Expiry Date</label>
               <input
                 type="date"
                 value={row.licence_validity}

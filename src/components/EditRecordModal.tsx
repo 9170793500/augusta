@@ -67,6 +67,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
           driver_name: driver.driver_name.trim(),
           mobile: driver.mobile || null,
           licence_number: driver.licence_number || null,
+          licence_valid_from: driver.licence_valid_from || null,
           licence_validity: driver.licence_validity || null,
           aadhar_number: driver.aadhar_number || null,
           address: driver.address || null,
@@ -88,6 +89,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
           aadhar_number: maid.aadhar_number.trim(),
           mobile: maid.mobile || null,
           card_number: maid.card_number?.trim() || '',
+          card_valid_from: maid.card_valid_from || null,
           employment_valid_till: maid.employment_valid_till || null,
           notes: maid.notes || null,
         } as never)
@@ -128,7 +130,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
       : target.kind === 'driver'
         ? 'Edit Driver'
         : target.kind === 'maid'
-          ? 'Edit Maid'
+          ? 'Edit Domestic Help'
           : 'Edit Security Staff'
 
   return (
@@ -235,7 +237,15 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
                 />
               </div>
               <div className="field">
-                <label>Licence Validity</label>
+                <label>Licence Start Date</label>
+                <input
+                  type="date"
+                  value={driver.licence_valid_from || ''}
+                  onChange={(e) => setDriver({ ...driver, licence_valid_from: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label>Licence Expiry Date</label>
                 <input
                   type="date"
                   value={driver.licence_validity || ''}
@@ -320,6 +330,22 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
                   <option value="male">Male</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+              <div className="field">
+                <label>Card Start Date</label>
+                <input
+                  type="date"
+                  value={maid.card_valid_from || ''}
+                  onChange={(e) => setMaid({ ...maid, card_valid_from: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label>Card Expiry Date</label>
+                <input
+                  type="date"
+                  value={maid.employment_valid_till || ''}
+                  onChange={(e) => setMaid({ ...maid, employment_valid_till: e.target.value })}
+                />
               </div>
             </div>
           )}

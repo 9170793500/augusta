@@ -44,7 +44,7 @@ type RoleScopeOpts = {
   profileName?: string | null
 }
 
-/** Owner: apna owner record + flat ke saare tenant. Tenant: sirf apna record. */
+/** Owner: own owner record plus all tenants in the flat. Tenant: own record only. */
 export function scopeResidentsForRole<T extends FlatResidentLike>(
   rows: T[],
   opts: RoleScopeOpts
@@ -78,7 +78,7 @@ export function scopeResidentsForRole<T extends FlatResidentLike>(
   return scoped
 }
 
-/** Tenant: sirf apni lease. Owner: flat ki saari leases (tenant ki poori history). */
+/** Tenant: own lease only. Owner: all leases for the flat. */
 export function scopeLeasesForRole<T extends { apartment_no: string; tenant_name?: string | null }>(
   rows: T[],
   opts: RoleScopeOpts
@@ -93,7 +93,7 @@ export function scopeLeasesForRole<T extends { apartment_no: string; tenant_name
   return scoped
 }
 
-/** Tenant: sirf apna NOC. Owner: flat ke saare NOC (tenant related). */
+/** Tenant: own NOC only. Owner: all NOC records for the flat. */
 export function scopeNocForRole<T extends { apartment_no: string; tenant_name?: string | null }>(
   rows: T[],
   opts: RoleScopeOpts
@@ -108,7 +108,7 @@ export function scopeNocForRole<T extends { apartment_no: string; tenant_name?: 
   return scoped
 }
 
-/** Tenant: sirf apne naam ke documents. Owner: flat ke saare. */
+/** Tenant: own documents only. Owner: all documents for the flat. */
 export function scopeDocumentsForRole<T extends { apartment_no: string | null; holder_name?: string | null }>(
   rows: T[],
   opts: RoleScopeOpts
@@ -123,7 +123,7 @@ export function scopeDocumentsForRole<T extends { apartment_no: string | null; h
   return scoped
 }
 
-/** Tenant ko vehicles/rfid/drivers/maids nahi — owner flat ka poora household dekhe. */
+/** Tenants do not see vehicles, RFID, drivers or domestic help — owners see the full household. */
 export function scopeHouseholdForRole<T extends { apartment_no: string | null }>(
   rows: T[],
   opts: RoleScopeOpts

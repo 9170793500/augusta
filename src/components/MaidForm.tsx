@@ -13,6 +13,7 @@ type Row = {
   aadhar_number: string
   mobile: string
   card_number: string
+  card_valid_from: string
   employment_valid_till: string
   notes: string
 }
@@ -27,6 +28,7 @@ function blankRow(employment_type: EmploymentType = 'part_time'): Row {
     aadhar_number: '',
     mobile: '',
     card_number: '',
+    card_valid_from: '',
     employment_valid_till: '',
     notes: '',
   }
@@ -71,13 +73,14 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
         aadhar_number: r.aadhar_number.trim(),
         mobile: r.mobile.trim() || null,
         card_number: r.card_number.trim(),
+        card_valid_from: r.card_valid_from || null,
         employment_valid_till: r.employment_valid_till || null,
         notes: r.notes.trim() || null,
       }))
       .filter((r) => r.name && r.aadhar_number && r.card_number)
 
     if (payload.length === 0) {
-      setError('Fill at least one maid with Name, Aadhar and Card Number. Remove empty rows if not needed.')
+      setError('Fill at least one domestic help person with Name, Aadhar and Card Number. Remove empty rows if not needed.')
       return
     }
 
@@ -90,7 +93,7 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
       return
     }
 
-    setOk(`${payload.length} maid record(s) saved.`)
+    setOk(`${payload.length} domestic help record(s) saved.`)
     setRows([blankRow('full_time'), blankRow('part_time')])
     if (!lockApartment) setApt('')
     onSaved()
@@ -98,9 +101,9 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
 
   return (
     <form onSubmit={onSubmit}>
-      <h3 className="pane-title">Add Maids / Domestic Staff</h3>
+      <h3 className="pane-title">Add Domestic Help</h3>
       <p className="form-hint">
-        Add full-time and part-time maids separately. Use “Add another maid” if there are more people.
+        Add full-time and part-time domestic help separately. Use “Add another” if there are more people.
       </p>
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-ok">{ok}</div>}
@@ -116,7 +119,7 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
         <div className="entry-block" key={row.key}>
           <div className="entry-head">
             <strong>
-              Maid {index + 1}{' '}
+              Domestic help {index + 1}{' '}
               <span className="entry-tag">
                 {row.employment_type === 'full_time' ? 'Full-time' : 'Part-time'}
               </span>
@@ -188,7 +191,15 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
               <input value={row.mobile} onChange={(e) => updateRow(row.key, { mobile: e.target.value })} />
             </div>
             <div className="field">
-              <label>Employment Valid Till</label>
+              <label>Card Start Date</label>
+              <input
+                type="date"
+                value={row.card_valid_from}
+                onChange={(e) => updateRow(row.key, { card_valid_from: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Card Expiry Date</label>
               <input
                 type="date"
                 value={row.employment_valid_till}
@@ -209,18 +220,18 @@ export function MaidForm({ onSaved, apartmentNo, lockApartment, isAdmin }: Props
           className="btn btn-ghost add-more"
           onClick={() => setRows((list) => [...list, blankRow('full_time')])}
         >
-          + Add full-time maid
+          + Add full-time domestic help
         </button>
         <button
           type="button"
           className="btn btn-ghost add-more"
           onClick={() => setRows((list) => [...list, blankRow('part_time')])}
         >
-          + Add part-time maid
+          + Add part-time domestic help
         </button>
       </div>
       <button className="btn btn-primary" disabled={saving}>
-        {saving ? 'Saving…' : 'Save all maids'}
+        {saving ? 'Saving…' : 'Save all domestic help'}
       </button>
     </form>
   )

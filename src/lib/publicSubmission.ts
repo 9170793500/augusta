@@ -5,9 +5,9 @@ const TOKEN_KEY = 'augusta_public_submission_token'
 const CONTACT_KEY = 'augusta_public_contact'
 const CACHE_KEY = 'augusta_public_submissions_cache'
 
-export type PublicDetailCategory = 'owner' | 'tenant' | 'lease' | 'maid' | 'driver' | 'servant' | 'vehicle'
+export type PublicDetailCategory = 'owner' | 'tenant' | 'lease' | 'maid' | 'driver' | 'vehicle'
 
-export type LivingAs = 'owner' | 'tenant'
+export type LivingAs = 'owner_resident' | 'owner_non_resident' | 'tenant_resident'
 
 export type PublicContact = {
   apartmentNo: string
@@ -29,11 +29,34 @@ export type PublicSubmission = {
   created_at: string
 }
 
-const OWNER_TABS: PublicDetailCategory[] = ['owner', 'maid', 'driver', 'servant', 'vehicle']
-const TENANT_TABS: PublicDetailCategory[] = ['tenant', 'lease', 'maid', 'driver', 'servant', 'vehicle']
+const OWNER_RESIDENT_TABS: PublicDetailCategory[] = ['owner', 'maid', 'driver', 'vehicle']
+const OWNER_NON_RESIDENT_TABS: PublicDetailCategory[] = ['owner', 'vehicle']
+const TENANT_RESIDENT_TABS: PublicDetailCategory[] = ['tenant', 'lease', 'maid', 'driver', 'vehicle']
+
+export function normalizeLivingAs(raw: unknown): LivingAs {
+  if (raw === 'tenant' || raw === 'tenant_resident') return 'tenant_resident'
+  if (raw === 'owner_non_resident') return 'owner_non_resident'
+  return 'owner_resident'
+}
 
 export function tabsForLivingAs(livingAs: LivingAs): PublicDetailCategory[] {
-  return livingAs === 'tenant' ? TENANT_TABS : OWNER_TABS
+  if (livingAs === 'tenant_resident') return TENANT_RESIDENT_TABS
+  if (livingAs === 'owner_non_resident') return OWNER_NON_RESIDENT_TABS
+  return OWNER_RESIDENT_TABS
+}
+
+export function defaultTabForLivingAs(livingAs: LivingAs): PublicDetailCategory {
+  return livingAs === 'tenant_resident' ? 'tenant' : 'owner'
+}
+
+export function livingAsLabel(livingAs: LivingAs): string {
+  if (livingAs === 'tenant_resident') return 'Tenant Resident'
+  if (livingAs === 'owner_non_resident') return 'Owner Non-Resident'
+  return 'Owner Resident'
+}
+
+export function vehicleLinkedTo(livingAs: LivingAs): 'owner' | 'tenant' {
+  return livingAs === 'tenant_resident' ? 'tenant' : 'owner'
 }
 
 export function getSubmissionToken(): string {
@@ -48,16 +71,16 @@ export function getSubmissionToken(): string {
 export function loadPublicContact(): PublicContact {
   try {
     const raw = localStorage.getItem(CONTACT_KEY)
-    if (!raw) return { apartmentNo: '', submitterName: '', submitterMobile: '', livingAs: 'owner' }
+    if (!raw) return { apartmentNo: '', submitterName: '', submitterMobile: '', livingAs: 'owner_resident' }
     const parsed = JSON.parse(raw) as Partial<PublicContact>
     return {
       apartmentNo: parsed.apartmentNo || '',
       submitterName: parsed.submitterName || '',
       submitterMobile: parsed.submitterMobile || '',
-      livingAs: parsed.livingAs === 'tenant' ? 'tenant' : 'owner',
+      livingAs: normalizeLivingAs(parsed.livingAs),
     }
   } catch {
-    return { apartmentNo: '', submitterName: '', submitterMobile: '', livingAs: 'owner' }
+    return { apartmentNo: '', submitterName: '', submitterMobile: '', livingAs: 'owner_resident' }
   }
 }
 
@@ -108,7 +131,7 @@ export function cacheSubmissionLocally(
 
 export function nextTabAfterSubmit(
   current: PublicDetailCategory,
-  livingAs: LivingAs = 'owner'
+  livingAs: LivingAs = 'owner_resident'
 ): PublicDetailCategory | 'view' {
   const seq = tabsForLivingAs(livingAs)
   const idx = seq.indexOf(current)
@@ -249,10 +272,10 @@ export function categoryLabel(category: PublicDetailCategory | string) {
     owner: 'Owner',
     tenant: 'Tenant',
     lease: 'Lease',
-    maid: 'Maid',
+    maid: 'Domestic Help',
     driver: 'Driver',
-    servant: 'Servant / Staff',
     vehicle: 'Vehicle',
+    servant: 'Domestic Help',
   }
   return labels[category] || category
 }

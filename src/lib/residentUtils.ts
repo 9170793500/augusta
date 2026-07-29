@@ -265,7 +265,7 @@ export async function savePersonToFlat(apartment_no: string, person: PersonField
 
   let linkId = person.flatResidentId
 
-  // Owner: ek flat par sirf ek owner link — duplicate insert mat karo
+  // Owner: one owner link per flat — avoid duplicate inserts
   if (person.occupancy_role === 'owner') {
     if (!linkId) {
       const { data: existing } = await supabase

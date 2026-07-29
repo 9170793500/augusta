@@ -64,7 +64,7 @@ export function ReportsPanel({ flats, leases, vehicles, rfids, drivers, maids, s
           <h3>Drivers</h3>
           <div className="table-wrap table-compact">
             <table>
-              <thead><tr><th>Apartment</th><th>Name</th><th>Licence Till</th></tr></thead>
+              <thead><tr><th>Apartment</th><th>Name</th><th>Licence Expiry</th></tr></thead>
               <tbody>{drivers.slice(0, 6).map((d) => (
                 <tr key={d.id}><td>{d.apartment_no}</td><td>{d.driver_name}</td><td>{d.licence_validity || '—'}</td></tr>
               ))}</tbody>
@@ -73,7 +73,7 @@ export function ReportsPanel({ flats, leases, vehicles, rfids, drivers, maids, s
         </div>
 
         <div className="card-section">
-          <h3>Maid Report</h3>
+          <h3>Domestic Help Report</h3>
           <div className="table-wrap table-compact">
             <table>
               <thead><tr><th>Apartment</th><th>Name</th><th>Type</th><th>Card</th></tr></thead>

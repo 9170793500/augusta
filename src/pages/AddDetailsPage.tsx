@@ -2,9 +2,21 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApartmentField } from '../components/ApartmentField'
 import { PublicStaffForm, blankStaffRow, staffRowsToPayload, type StaffRow } from '../components/PublicStaffForm'
+import {
+  PublicVehicleForm,
+  blankVehicleRow,
+  vehicleRowsToPayload,
+  type VehicleRow,
+} from '../components/PublicVehicleForm'
+import {
+  LeaseDocumentUpload,
+  LeaseFieldsSection,
+} from '../components/LeaseDocumentUpload'
 import { normalizeApartmentInput } from '../lib/apartmentUtils'
+import type { ParsedLeaseFields } from '../lib/leaseDocumentParse'
 import {
   categoryLabel,
+  defaultTabForLivingAs,
   detailSummary,
   fetchPublicSubmissions,
   loadPublicContact,
@@ -14,6 +26,7 @@ import {
   submitPublicDetailBatch,
   tabsForLivingAs,
   updatePublicDetail,
+  vehicleLinkedTo,
   type LivingAs,
   type PublicContact,
   type PublicDetailCategory,
@@ -26,9 +39,8 @@ const TAB_LABELS: Record<PublicDetailCategory, string> = {
   owner: 'Owner',
   tenant: 'Tenant',
   lease: 'Lease',
-  maid: 'Maid',
+  maid: 'Domestic Help',
   driver: 'Driver',
-  servant: 'Servant',
   vehicle: 'Vehicle',
 }
 
@@ -41,6 +53,7 @@ function emptyResident(role: 'owner' | 'tenant') {
     email: '',
     aadhar_number: '',
     pan_number: '',
+    family_members: '',
     occupancy_role: role,
   }
 }
@@ -63,14 +76,31 @@ function detailsToStaffRow(details: Record<string, unknown>): StaffRow {
     aadhar_number: strDetail(details, 'aadhar_number'),
     mobile: strDetail(details, 'mobile'),
     card_number: strDetail(details, 'card_number'),
+    card_valid_from: strDetail(details, 'card_valid_from'),
     employment_valid_till: strDetail(details, 'employment_valid_till'),
     notes: strDetail(details, 'notes'),
   }
 }
 
+function detailsToVehicleRow(details: Record<string, unknown>): VehicleRow {
+  return {
+    ...blankVehicleRow(),
+    vehicle_no: strDetail(details, 'vehicle_no'),
+    make_model: strDetail(details, 'make_model'),
+    colour: strDetail(details, 'colour'),
+    linked_to: strDetail(details, 'linked_to') || 'owner',
+    rc_number: strDetail(details, 'rc_number'),
+    puc_id: strDetail(details, 'puc_id'),
+    puc_validity: strDetail(details, 'puc_validity'),
+    parking_slot: strDetail(details, 'parking_slot'),
+    driver_name: strDetail(details, 'driver_name'),
+    driver_licence: strDetail(details, 'driver_licence'),
+  }
+}
+
 export function AddDetailsPage() {
   const [contact, setContact] = useState<PublicContact>(() => loadPublicContact())
-  const [tab, setTab] = useState<TabId>(() => (loadPublicContact().livingAs === 'tenant' ? 'tenant' : 'owner'))
+  const [tab, setTab] = useState<TabId>(() => defaultTabForLivingAs(loadPublicContact().livingAs))
   const [submissions, setSubmissions] = useState<PublicSubmission[]>([])
   const [viewNotice, setViewNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -87,31 +117,22 @@ export function AddDetailsPage() {
     lease_end: '',
     status: 'active',
     notes: '',
+    document_url: '',
   })
+  const [leaseFileName, setLeaseFileName] = useState('')
   const [maidRows, setMaidRows] = useState<StaffRow[]>([blankStaffRow('full_time'), blankStaffRow('part_time')])
   const [driverForm, setDriverForm] = useState({
     vehicle_no: '',
     driver_name: '',
     mobile: '',
     licence_number: '',
+    licence_valid_from: '',
     licence_validity: '',
     aadhar_number: '',
     address: '',
     notes: '',
   })
-  const [servantRows, setServantRows] = useState<StaffRow[]>([blankStaffRow('full_time'), blankStaffRow('part_time')])
-  const [vehicleForm, setVehicleForm] = useState({
-    vehicle_no: '',
-    make_model: '',
-    colour: '',
-    linked_to: 'owner' as string,
-    rc_number: '',
-    puc_id: '',
-    puc_validity: '',
-    parking_slot: '',
-    driver_name: '',
-    driver_licence: '',
-  })
+  const [vehicleRows, setVehicleRows] = useState<VehicleRow[]>(() => [blankVehicleRow(vehicleLinkedTo(loadPublicContact().livingAs))])
 
   const visibleTabs = tabsForLivingAs(contact.livingAs)
 
@@ -128,8 +149,8 @@ export function AddDetailsPage() {
     setEditing(null)
     setError(null)
     setOk(null)
-    setTab(livingAs === 'tenant' ? 'tenant' : 'owner')
-    setVehicleForm((v) => ({ ...v, linked_to: livingAs }))
+    setTab(defaultTabForLivingAs(livingAs))
+    setVehicleRows([blankVehicleRow(vehicleLinkedTo(livingAs))])
   }
 
   const refreshSubmissions = useCallback(async (showLoadError = false) => {
@@ -161,8 +182,8 @@ export function AddDetailsPage() {
     const apt = normalizeApartmentInput(contact.apartmentNo)
     if (!apt) return 'Apartment number is required.'
     if (!contact.submitterName.trim()) return 'Your full name is required.'
-    if (contact.livingAs !== 'owner' && contact.livingAs !== 'tenant') {
-      return 'Select whether you are Owner or Tenant.'
+    if (!['owner_resident', 'owner_non_resident', 'tenant_resident'].includes(contact.livingAs)) {
+      return 'Select whether you are Owner Resident, Owner Non-Resident, or Tenant Resident.'
     }
     return null
   }
@@ -177,31 +198,22 @@ export function AddDetailsPage() {
       lease_end: '',
       status: 'active',
       notes: '',
+      document_url: '',
     })
+    setLeaseFileName('')
     setMaidRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
-    setServantRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
     setDriverForm({
       vehicle_no: '',
       driver_name: '',
       mobile: '',
       licence_number: '',
+      licence_valid_from: '',
       licence_validity: '',
       aadhar_number: '',
       address: '',
       notes: '',
     })
-    setVehicleForm({
-      vehicle_no: '',
-      make_model: '',
-      colour: '',
-      linked_to: contact.livingAs === 'tenant' ? 'tenant' : 'owner',
-      rc_number: '',
-      puc_id: '',
-      puc_validity: '',
-      parking_slot: '',
-      driver_name: '',
-      driver_licence: '',
-    })
+    setVehicleRows([blankVehicleRow(vehicleLinkedTo(contact.livingAs))])
   }
 
   function startEdit(row: PublicSubmission) {
@@ -214,9 +226,9 @@ export function AddDetailsPage() {
       submitterMobile: row.submitter_mobile || contact.submitterMobile,
       livingAs:
         row.category === 'tenant' || row.category === 'lease'
-          ? 'tenant'
+          ? 'tenant_resident'
           : row.category === 'owner'
-            ? 'owner'
+            ? 'owner_resident'
             : contact.livingAs,
     })
 
@@ -231,6 +243,7 @@ export function AddDetailsPage() {
         email: strDetail(d, 'email'),
         aadhar_number: strDetail(d, 'aadhar_number'),
         pan_number: strDetail(d, 'pan_number'),
+        family_members: strDetail(d, 'family_members'),
       })
     } else if (row.category === 'tenant') {
       setTenantForm({
@@ -242,6 +255,7 @@ export function AddDetailsPage() {
         email: strDetail(d, 'email'),
         aadhar_number: strDetail(d, 'aadhar_number'),
         pan_number: strDetail(d, 'pan_number'),
+        family_members: strDetail(d, 'family_members'),
       })
     } else if (row.category === 'lease') {
       setLeaseForm({
@@ -250,35 +264,25 @@ export function AddDetailsPage() {
         lease_end: strDetail(d, 'lease_end'),
         status: strDetail(d, 'status') || 'active',
         notes: strDetail(d, 'notes'),
+        document_url: strDetail(d, 'document_url'),
       })
+      setLeaseFileName(strDetail(d, 'document_file_name'))
     } else if (row.category === 'maid') {
       setMaidRows([detailsToStaffRow(d)])
-    } else if (row.category === 'servant') {
-      setServantRows([detailsToStaffRow(d)])
     } else if (row.category === 'driver') {
       setDriverForm({
         vehicle_no: strDetail(d, 'vehicle_no'),
         driver_name: strDetail(d, 'driver_name'),
         mobile: strDetail(d, 'mobile'),
         licence_number: strDetail(d, 'licence_number'),
+        licence_valid_from: strDetail(d, 'licence_valid_from'),
         licence_validity: strDetail(d, 'licence_validity'),
         aadhar_number: strDetail(d, 'aadhar_number'),
         address: strDetail(d, 'address'),
         notes: strDetail(d, 'notes'),
       })
     } else if (row.category === 'vehicle') {
-      setVehicleForm({
-        vehicle_no: strDetail(d, 'vehicle_no'),
-        make_model: strDetail(d, 'make_model'),
-        colour: strDetail(d, 'colour'),
-        linked_to: strDetail(d, 'linked_to') || 'owner',
-        rc_number: strDetail(d, 'rc_number'),
-        puc_id: strDetail(d, 'puc_id'),
-        puc_validity: strDetail(d, 'puc_validity'),
-        parking_slot: strDetail(d, 'parking_slot'),
-        driver_name: strDetail(d, 'driver_name'),
-        driver_licence: strDetail(d, 'driver_licence'),
-      })
+      setVehicleRows([detailsToVehicleRow(d)])
     }
 
     setTab(row.category)
@@ -339,7 +343,7 @@ export function AddDetailsPage() {
 
   async function handleStaffBatchSubmit(
     e: FormEvent,
-    category: 'maid' | 'servant',
+    category: 'maid',
     rows: StaffRow[],
     resetRows: () => void
   ) {
@@ -387,6 +391,51 @@ export function AddDetailsPage() {
     setSaving(false)
   }
 
+  async function handleVehicleBatchSubmit(e: FormEvent, rows: VehicleRow[], resetRows: () => void) {
+    e.preventDefault()
+    setError(null)
+    setOk(null)
+
+    const contactErr = validateContact()
+    if (contactErr) {
+      setError(contactErr)
+      return
+    }
+
+    const filled = vehicleRowsToPayload(rows)
+    if (filled.length === 0) {
+      setError('Fill at least one vehicle with Vehicle No. Remove empty rows if not needed.')
+      return
+    }
+
+    const apt = normalizeApartmentInput(contact.apartmentNo)
+    const normalizedContact = { ...contact, apartmentNo: apt }
+    savePublicContact(normalizedContact)
+    setContact(normalizedContact)
+
+    setSaving(true)
+    try {
+      if (editing && editing.category === 'vehicle') {
+        await updatePublicDetail(editing.id, 'vehicle', filled[0], normalizedContact)
+        resetRows()
+        await afterSuccessfulSubmit('vehicle', `${categoryLabel('vehicle')} updated successfully.`, false)
+      } else {
+        await submitPublicDetailBatch('vehicle', filled, normalizedContact)
+        resetRows()
+        const next = nextTabAfterSubmit('vehicle', normalizedContact.livingAs)
+        const nextLabel = next === 'view' ? 'My Submissions' : categoryLabel(next)
+        await afterSuccessfulSubmit(
+          'vehicle',
+          `${filled.length} vehicle record(s) saved! Continue with ${nextLabel}.`,
+          true
+        )
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submit failed.')
+    }
+    setSaving(false)
+  }
+
   return (
     <div className="public-site add-details-page">
       <header className="public-header">
@@ -410,7 +459,7 @@ export function AddDetailsPage() {
           <div className="public-tag">Public submission</div>
           <h1>Add your details</h1>
           <p>
-            Owners, tenants and residents can add personal, maid, driver, servant and vehicle records here —
+            Owners, tenants and residents can add personal, domestic help, driver and vehicle records here —
             no login required. Data goes directly into the same Supabase tables the admin uses
             (flats, residents, maids, drivers, vehicles).
           </p>
@@ -454,10 +503,11 @@ export function AddDetailsPage() {
               <select
                 value={contact.livingAs}
                 onChange={(e) => setLivingAs(e.target.value as LivingAs)}
-                aria-label="Owner or Tenant"
+                aria-label="Resident type"
               >
-                <option value="owner">Owner</option>
-                <option value="tenant">Tenant</option>
+                <option value="owner_resident">Owner Resident</option>
+                <option value="owner_non_resident">Owner Non-Resident</option>
+                <option value="tenant_resident">Tenant Resident</option>
               </select>
             </div>
           </div>
@@ -488,7 +538,15 @@ export function AddDetailsPage() {
         </div>
 
         {tab === 'owner' && (
-          <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'owner', ownerForm)}>
+          <form
+            className="add-details-form card-section"
+            onSubmit={(e) =>
+              handleSubmit(e, 'owner', {
+                ...ownerForm,
+                is_resident: contact.livingAs === 'owner_resident',
+              })
+            }
+          >
             <h3>{editing?.category === 'owner' ? 'Edit owner details' : 'Owner details'}</h3>
             <p className="form-hint">Saved to Flats + Owner records (same as admin dashboard).</p>
             <div className="form-grid">
@@ -499,6 +557,7 @@ export function AddDetailsPage() {
               <div className="field"><label>Email</label><input type="email" value={ownerForm.email} onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })} /></div>
               <div className="field"><label>Aadhar</label><input value={ownerForm.aadhar_number} onChange={(e) => setOwnerForm({ ...ownerForm, aadhar_number: e.target.value })} /></div>
               <div className="field"><label>PAN</label><input value={ownerForm.pan_number} onChange={(e) => setOwnerForm({ ...ownerForm, pan_number: e.target.value })} /></div>
+              <div className="field"><label>Family members</label><input type="number" min={0} value={ownerForm.family_members} onChange={(e) => setOwnerForm({ ...ownerForm, family_members: e.target.value })} placeholder="Number of family members" /></div>
             </div>
             <div className="form-actions-row">
               {editing?.category === 'owner' && (
@@ -525,6 +584,7 @@ export function AddDetailsPage() {
               <div className="field"><label>Email</label><input type="email" value={tenantForm.email} onChange={(e) => setTenantForm({ ...tenantForm, email: e.target.value })} /></div>
               <div className="field"><label>Aadhar</label><input value={tenantForm.aadhar_number} onChange={(e) => setTenantForm({ ...tenantForm, aadhar_number: e.target.value })} /></div>
               <div className="field"><label>PAN</label><input value={tenantForm.pan_number} onChange={(e) => setTenantForm({ ...tenantForm, pan_number: e.target.value })} /></div>
+              <div className="field"><label>Family members</label><input type="number" min={0} value={tenantForm.family_members} onChange={(e) => setTenantForm({ ...tenantForm, family_members: e.target.value })} placeholder="Number of family members" /></div>
             </div>
             <div className="form-actions-row">
               {editing?.category === 'tenant' && (
@@ -546,57 +606,40 @@ export function AddDetailsPage() {
               handleSubmit(e, 'lease', {
                 ...leaseForm,
                 tenant_name: leaseForm.tenant_name || tenantForm.full_name || contact.submitterName,
+                document_file_name: leaseFileName || null,
               })
             }
           >
             <h3>{editing?.category === 'lease' ? 'Edit lease details' : 'Lease details'}</h3>
-            <p className="form-hint">Saved to Leases table (same as admin dashboard). Only for tenants.</p>
-            <div className="form-grid">
-              <div className="field full">
-                <label>Tenant name</label>
-                <input
-                  required
-                  value={leaseForm.tenant_name || tenantForm.full_name || contact.submitterName}
-                  onChange={(e) => setLeaseForm({ ...leaseForm, tenant_name: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>Lease start</label>
-                <input
-                  type="date"
-                  required
-                  value={leaseForm.lease_start}
-                  onChange={(e) => setLeaseForm({ ...leaseForm, lease_start: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>Lease end</label>
-                <input
-                  type="date"
-                  required
-                  value={leaseForm.lease_end}
-                  onChange={(e) => setLeaseForm({ ...leaseForm, lease_end: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>Status</label>
-                <select
-                  value={leaseForm.status}
-                  onChange={(e) => setLeaseForm({ ...leaseForm, status: e.target.value })}
-                >
-                  <option value="active">Active</option>
-                  <option value="expired">Expired</option>
-                  <option value="renewed">Renewed</option>
-                </select>
-              </div>
-              <div className="field full">
-                <label>Notes</label>
-                <input
-                  value={leaseForm.notes}
-                  onChange={(e) => setLeaseForm({ ...leaseForm, notes: e.target.value })}
-                />
-              </div>
-            </div>
+            <p className="form-hint">Upload a lease copy to auto-fill fields, or enter details manually. Saved to the Leases table.</p>
+
+            <LeaseDocumentUpload
+              apartmentNo={normalizeApartmentInput(contact.apartmentNo)}
+              documentUrl={leaseForm.document_url}
+              fileName={leaseFileName}
+              onDocumentUrl={(url) => setLeaseForm((f) => ({ ...f, document_url: url }))}
+              onFileName={setLeaseFileName}
+              onParsed={(parsed: ParsedLeaseFields) =>
+                setLeaseForm((f) => ({
+                  ...f,
+                  tenant_name: parsed.tenant_name || f.tenant_name,
+                  lease_start: parsed.lease_start || f.lease_start,
+                  lease_end: parsed.lease_end || f.lease_end,
+                }))
+              }
+              disabled={!normalizeApartmentInput(contact.apartmentNo) || saving}
+            />
+
+            {!normalizeApartmentInput(contact.apartmentNo) && (
+              <div className="alert alert-warn">Enter apartment number in Your contact before uploading a lease document.</div>
+            )}
+
+            <LeaseFieldsSection
+              value={leaseForm}
+              onChange={setLeaseForm}
+              defaultTenantName={tenantForm.full_name || contact.submitterName}
+            />
+
             <div className="form-actions-row">
               {editing?.category === 'lease' && (
                 <button type="button" className="btn btn-ghost" onClick={() => { clearEditing(); setTab('view') }}>Cancel edit</button>
@@ -612,9 +655,9 @@ export function AddDetailsPage() {
 
         {tab === 'maid' && (
           <PublicStaffForm
-            title={editing?.category === 'maid' ? 'Edit maid details' : 'Maid details'}
-            hint="Add full-time and part-time maids separately — same as admin Maid form. Saved to Maids table."
-            entityLabel="Maid"
+            title={editing?.category === 'maid' ? 'Edit domestic help details' : 'Domestic help details'}
+            hint="Add full-time and part-time domestic help separately — same as admin form. Saved to Maids table."
+            entityLabel="Domestic help"
             rows={maidRows}
             onRowsChange={setMaidRows}
             saving={saving}
@@ -636,8 +679,9 @@ export function AddDetailsPage() {
               <div className="field"><label>Driver name</label><input required value={driverForm.driver_name} onChange={(e) => setDriverForm({ ...driverForm, driver_name: e.target.value })} /></div>
               <div className="field"><label>Vehicle no</label><input value={driverForm.vehicle_no} onChange={(e) => setDriverForm({ ...driverForm, vehicle_no: e.target.value })} /></div>
               <div className="field"><label>Mobile</label><input value={driverForm.mobile} onChange={(e) => setDriverForm({ ...driverForm, mobile: e.target.value })} /></div>
-              <div className="field"><label>Licence no</label><input value={driverForm.licence_number} onChange={(e) => setDriverForm({ ...driverForm, licence_number: e.target.value })} /></div>
-              <div className="field"><label>Licence validity</label><input type="date" value={driverForm.licence_validity} onChange={(e) => setDriverForm({ ...driverForm, licence_validity: e.target.value })} /></div>
+              <div className="field"><label>Licence number</label><input value={driverForm.licence_number} onChange={(e) => setDriverForm({ ...driverForm, licence_number: e.target.value })} /></div>
+              <div className="field"><label>Licence start date</label><input type="date" value={driverForm.licence_valid_from} onChange={(e) => setDriverForm({ ...driverForm, licence_valid_from: e.target.value })} /></div>
+              <div className="field"><label>Licence expiry date</label><input type="date" value={driverForm.licence_validity} onChange={(e) => setDriverForm({ ...driverForm, licence_validity: e.target.value })} /></div>
               <div className="field"><label>Aadhar</label><input value={driverForm.aadhar_number} onChange={(e) => setDriverForm({ ...driverForm, aadhar_number: e.target.value })} /></div>
               <div className="field full"><label>Address</label><input value={driverForm.address} onChange={(e) => setDriverForm({ ...driverForm, address: e.target.value })} /></div>
               <div className="field full"><label>Notes</label><input value={driverForm.notes} onChange={(e) => setDriverForm({ ...driverForm, notes: e.target.value })} /></div>
@@ -655,56 +699,21 @@ export function AddDetailsPage() {
           </form>
         )}
 
-        {tab === 'servant' && (
-          <PublicStaffForm
-            title={editing?.category === 'servant' ? 'Edit servant details' : 'Servant / domestic staff'}
-            hint="Ek ghar mein kai servant ho sakte hain — full-time aur part-time alag add karein. Same Maids table as admin."
-            entityLabel="Servant"
-            showRole
-            rows={servantRows}
-            onRowsChange={setServantRows}
+        {tab === 'vehicle' && (
+          <PublicVehicleForm
+            title={editing?.category === 'vehicle' ? 'Edit vehicle details' : 'Vehicle details'}
+            hint="Add all vehicles registered for this flat. Saved to the Vehicles table."
+            rows={vehicleRows}
+            onRowsChange={setVehicleRows}
             saving={saving}
-            editing={editing?.category === 'servant'}
+            editing={editing?.category === 'vehicle'}
             onCancelEdit={() => { clearEditing(); setTab('view') }}
             onSubmit={(e, rows) =>
-              handleStaffBatchSubmit(e, 'servant', rows, () =>
-                setServantRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
+              handleVehicleBatchSubmit(e, rows, () =>
+                setVehicleRows([blankVehicleRow(vehicleLinkedTo(contact.livingAs))])
               )
             }
           />
-        )}
-
-        {tab === 'vehicle' && (
-          <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'vehicle', vehicleForm)}>
-            <h3>{editing?.category === 'vehicle' ? 'Edit vehicle details' : 'Vehicle details'}</h3>
-            <p className="form-hint">Saved to Vehicles table (same as admin dashboard).</p>
-            <div className="form-grid">
-              <div className="field"><label>Vehicle no</label><input required value={vehicleForm.vehicle_no} onChange={(e) => setVehicleForm({ ...vehicleForm, vehicle_no: e.target.value })} /></div>
-              <div className="field"><label>Make / model</label><input value={vehicleForm.make_model} onChange={(e) => setVehicleForm({ ...vehicleForm, make_model: e.target.value })} /></div>
-              <div className="field"><label>Colour</label><input value={vehicleForm.colour} onChange={(e) => setVehicleForm({ ...vehicleForm, colour: e.target.value })} /></div>
-              <div className="field"><label>Linked to</label>
-                <select value={vehicleForm.linked_to} onChange={(e) => setVehicleForm({ ...vehicleForm, linked_to: e.target.value })}>
-                  <option value="owner">Owner</option><option value="tenant">Tenant</option>
-                </select>
-              </div>
-              <div className="field"><label>RC number</label><input value={vehicleForm.rc_number} onChange={(e) => setVehicleForm({ ...vehicleForm, rc_number: e.target.value })} /></div>
-              <div className="field"><label>PUC ID</label><input value={vehicleForm.puc_id} onChange={(e) => setVehicleForm({ ...vehicleForm, puc_id: e.target.value })} /></div>
-              <div className="field"><label>PUC validity</label><input type="date" value={vehicleForm.puc_validity} onChange={(e) => setVehicleForm({ ...vehicleForm, puc_validity: e.target.value })} /></div>
-              <div className="field"><label>Parking slot</label><input value={vehicleForm.parking_slot} onChange={(e) => setVehicleForm({ ...vehicleForm, parking_slot: e.target.value })} /></div>
-              <div className="field"><label>Driver name</label><input value={vehicleForm.driver_name} onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })} /></div>
-              <div className="field"><label>Driver licence</label><input value={vehicleForm.driver_licence} onChange={(e) => setVehicleForm({ ...vehicleForm, driver_licence: e.target.value })} /></div>
-            </div>
-            <div className="form-actions-row">
-              {editing?.category === 'vehicle' && (
-                <button type="button" className="btn btn-ghost" onClick={() => { clearEditing(); setTab('view') }}>Cancel edit</button>
-              )}
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving
-                  ? editing?.category === 'vehicle' ? 'Updating…' : 'Submitting…'
-                  : editing?.category === 'vehicle' ? 'Update vehicle' : 'Submit vehicle details'}
-              </button>
-            </div>
-          </form>
         )}
 
         {tab === 'view' && (

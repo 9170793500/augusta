@@ -11,6 +11,7 @@ export type StaffRow = {
   aadhar_number: string
   mobile: string
   card_number: string
+  card_valid_from: string
   employment_valid_till: string
   notes: string
 }
@@ -26,6 +27,7 @@ export function blankStaffRow(employment_type: EmploymentType = 'part_time'): St
     aadhar_number: '',
     mobile: '',
     card_number: '',
+    card_valid_from: '',
     employment_valid_till: '',
     notes: '',
   }
@@ -156,7 +158,15 @@ export function PublicStaffForm({
               <input value={row.mobile} onChange={(e) => updateRow(row.key, { mobile: e.target.value })} />
             </div>
             <div className="field">
-              <label>Employment valid till</label>
+              <label>Card start date</label>
+              <input
+                type="date"
+                value={row.card_valid_from}
+                onChange={(e) => updateRow(row.key, { card_valid_from: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Card expiry date</label>
               <input
                 type="date"
                 value={row.employment_valid_till}
