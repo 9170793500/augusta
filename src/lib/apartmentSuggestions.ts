@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { buildApartmentNo, normalizeApartmentInput } from './apartmentUtils'
+import { ALL_SOCIETY_APARTMENTS } from './societyFlats'
 
 let cached: string[] | null = null
 let loading: Promise<string[]> | null = null
@@ -22,6 +23,10 @@ export async function fetchApartmentSuggestions(): Promise<string[]> {
     for (const row of residentsRes.data || []) {
       const apt = normalizeApartmentInput(String(row.apartment_no || ''))
       if (apt) nums.add(apt)
+    }
+
+    for (const apt of ALL_SOCIETY_APARTMENTS) {
+      nums.add(apt)
     }
 
     cached = Array.from(nums).sort()

@@ -8,16 +8,14 @@ import {
   vehicleRowsToPayload,
   type VehicleRow,
 } from '../components/PublicVehicleForm'
-import {
-  LeaseDocumentUpload,
-  LeaseFieldsSection,
-} from '../components/LeaseDocumentUpload'
+import { LeaseFieldsSection } from '../components/LeaseDocumentUpload'
+import { ExistingSubmissionPanel } from '../components/ExistingSubmissionPanel'
 import { normalizeApartmentInput } from '../lib/apartmentUtils'
-import type { ParsedLeaseFields } from '../lib/leaseDocumentParse'
 import {
   categoryLabel,
   defaultTabForLivingAs,
   detailSummary,
+  existingSubmissionsForCategory,
   fetchPublicSubmissions,
   loadPublicContact,
   nextTabAfterSubmit,
@@ -108,6 +106,8 @@ export function AddDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const [editing, setEditing] = useState<PublicSubmission | null>(null)
+  const [duplicateRecords, setDuplicateRecords] = useState<PublicSubmission[]>([])
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null)
 
   const [ownerForm, setOwnerForm] = useState(emptyResident('owner'))
   const [tenantForm, setTenantForm] = useState(emptyResident('tenant'))
@@ -119,7 +119,6 @@ export function AddDetailsPage() {
     notes: '',
     document_url: '',
   })
-  const [leaseFileName, setLeaseFileName] = useState('')
   const [maidRows, setMaidRows] = useState<StaffRow[]>([blankStaffRow('full_time'), blankStaffRow('part_time')])
   const [driverForm, setDriverForm] = useState({
     vehicle_no: '',
@@ -188,7 +187,33 @@ export function AddDetailsPage() {
     return null
   }
 
+  function clearDuplicateNotice() {
+    setDuplicateRecords([])
+    setDuplicateMessage(null)
+  }
+
+  function showDuplicateNotice(existing: PublicSubmission[]) {
+    setDuplicateRecords(existing)
+    setDuplicateMessage(
+      'You have already added this data. Your saved details are shown below. Use Edit to update.'
+    )
+    setError(null)
+    setOk(null)
+    window.requestAnimationFrame(() => {
+      document.querySelector('.existing-submission-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+  }
+
+  function blockIfDuplicate(category: PublicDetailCategory, apartmentNo: string): boolean {
+    if (editing?.category === category) return false
+    const existing = existingSubmissionsForCategory(submissions, apartmentNo, category)
+    if (existing.length === 0) return false
+    showDuplicateNotice(existing)
+    return true
+  }
+
   function clearEditing() {
+    clearDuplicateNotice()
     setEditing(null)
     setOwnerForm(emptyResident('owner'))
     setTenantForm(emptyResident('tenant'))
@@ -200,7 +225,6 @@ export function AddDetailsPage() {
       notes: '',
       document_url: '',
     })
-    setLeaseFileName('')
     setMaidRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
     setDriverForm({
       vehicle_no: '',
@@ -217,6 +241,7 @@ export function AddDetailsPage() {
   }
 
   function startEdit(row: PublicSubmission) {
+    clearDuplicateNotice()
     setError(null)
     setOk(null)
     setEditing(row)
@@ -266,7 +291,6 @@ export function AddDetailsPage() {
         notes: strDetail(d, 'notes'),
         document_url: strDetail(d, 'document_url'),
       })
-      setLeaseFileName(strDetail(d, 'document_file_name'))
     } else if (row.category === 'maid') {
       setMaidRows([detailsToStaffRow(d)])
     } else if (row.category === 'driver') {
@@ -290,6 +314,7 @@ export function AddDetailsPage() {
   }
 
   async function afterSuccessfulSubmit(category: PublicDetailCategory, message: string, goNext: boolean) {
+    clearDuplicateNotice()
     setOk(message)
     const { rows } = await fetchPublicSubmissions()
     setSubmissions(rows)
@@ -308,6 +333,7 @@ export function AddDetailsPage() {
     e.preventDefault()
     setError(null)
     setOk(null)
+    clearDuplicateNotice()
 
     const contactErr = validateContact()
     if (contactErr) {
@@ -316,6 +342,8 @@ export function AddDetailsPage() {
     }
 
     const apt = normalizeApartmentInput(contact.apartmentNo)
+    if (blockIfDuplicate(category, apt)) return
+
     const normalizedContact = { ...contact, apartmentNo: apt }
     savePublicContact(normalizedContact)
     setContact(normalizedContact)
@@ -350,6 +378,7 @@ export function AddDetailsPage() {
     e.preventDefault()
     setError(null)
     setOk(null)
+    clearDuplicateNotice()
 
     const contactErr = validateContact()
     if (contactErr) {
@@ -364,6 +393,8 @@ export function AddDetailsPage() {
     }
 
     const apt = normalizeApartmentInput(contact.apartmentNo)
+    if (blockIfDuplicate(category, apt)) return
+
     const normalizedContact = { ...contact, apartmentNo: apt }
     savePublicContact(normalizedContact)
     setContact(normalizedContact)
@@ -395,6 +426,7 @@ export function AddDetailsPage() {
     e.preventDefault()
     setError(null)
     setOk(null)
+    clearDuplicateNotice()
 
     const contactErr = validateContact()
     if (contactErr) {
@@ -409,6 +441,8 @@ export function AddDetailsPage() {
     }
 
     const apt = normalizeApartmentInput(contact.apartmentNo)
+    if (blockIfDuplicate('vehicle', apt)) return
+
     const normalizedContact = { ...contact, apartmentNo: apt }
     savePublicContact(normalizedContact)
     setContact(normalizedContact)
@@ -466,7 +500,11 @@ export function AddDetailsPage() {
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
+        {duplicateMessage && <div className="alert alert-warn">{duplicateMessage}</div>}
         {ok && <div className="alert alert-ok">{ok}</div>}
+        {duplicateRecords.length > 0 && (
+          <ExistingSubmissionPanel rows={duplicateRecords} onEdit={startEdit} />
+        )}
         {editing && (
           <div className="alert alert-warn">
             Editing {categoryLabel(editing.category)} — change fields and click Update. Or{' '}
@@ -478,7 +516,7 @@ export function AddDetailsPage() {
         )}
 
         <section className="add-details-contact card-section">
-          <h2>Your contact</h2>
+          <h2>Details</h2>
           <p className="form-hint">Required for every submission — saved on this device only.</p>
           <div className="form-grid">
             <div className="field full">
@@ -521,7 +559,7 @@ export function AddDetailsPage() {
               role="tab"
               aria-selected={tab === id}
               className={`add-details-tab${tab === id ? ' active' : ''}`}
-              onClick={() => { setTab(id); setError(null); setOk(null); if (editing && editing.category !== id) clearEditing() }}
+              onClick={() => { setTab(id); setError(null); setOk(null); clearDuplicateNotice(); if (editing && editing.category !== id) clearEditing() }}
             >
               {TAB_LABELS[id]}
             </button>
@@ -531,7 +569,7 @@ export function AddDetailsPage() {
             role="tab"
             aria-selected={tab === 'view'}
             className={`add-details-tab add-details-tab-view${tab === 'view' ? ' active' : ''}`}
-            onClick={() => { setTab('view'); setError(null); setOk(null); clearEditing() }}
+            onClick={() => { setTab('view'); setError(null); setOk(null); clearDuplicateNotice(); clearEditing() }}
           >
             My Submissions ({submissions.length})
           </button>
@@ -606,33 +644,11 @@ export function AddDetailsPage() {
               handleSubmit(e, 'lease', {
                 ...leaseForm,
                 tenant_name: leaseForm.tenant_name || tenantForm.full_name || contact.submitterName,
-                document_file_name: leaseFileName || null,
               })
             }
           >
             <h3>{editing?.category === 'lease' ? 'Edit lease details' : 'Lease details'}</h3>
-            <p className="form-hint">Upload a lease copy to auto-fill fields, or enter details manually. Saved to the Leases table.</p>
-
-            <LeaseDocumentUpload
-              apartmentNo={normalizeApartmentInput(contact.apartmentNo)}
-              documentUrl={leaseForm.document_url}
-              fileName={leaseFileName}
-              onDocumentUrl={(url) => setLeaseForm((f) => ({ ...f, document_url: url }))}
-              onFileName={setLeaseFileName}
-              onParsed={(parsed: ParsedLeaseFields) =>
-                setLeaseForm((f) => ({
-                  ...f,
-                  tenant_name: parsed.tenant_name || f.tenant_name,
-                  lease_start: parsed.lease_start || f.lease_start,
-                  lease_end: parsed.lease_end || f.lease_end,
-                }))
-              }
-              disabled={!normalizeApartmentInput(contact.apartmentNo) || saving}
-            />
-
-            {!normalizeApartmentInput(contact.apartmentNo) && (
-              <div className="alert alert-warn">Enter apartment number in Your contact before uploading a lease document.</div>
-            )}
+            <p className="form-hint">Enter lease dates and tenant name manually. Saved to the Leases table.</p>
 
             <LeaseFieldsSection
               value={leaseForm}

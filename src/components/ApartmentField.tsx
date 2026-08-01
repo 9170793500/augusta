@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { APARTMENT_PREFIX, apartmentSuffix, buildApartmentNo } from '../lib/apartmentUtils'
-import { fetchApartmentSuggestions, filterApartmentSuggestions } from '../lib/apartmentSuggestions'
+import {
+  buildSocietyApartmentNo,
+  isSocietyTower,
+  parseTowerFlatSelection,
+  SOCIETY_FLAT_CODES,
+  TOWER_OPTIONS,
+  type SocietyTower,
+} from '../lib/societyFlats'
 
 export function ApartmentField({
   apartmentNo,
   lockApartment,
   value,
   onChange,
-  suggestions: externalSuggestions,
 }: {
   apartmentNo: string | null
   lockApartment: boolean
@@ -15,93 +20,88 @@ export function ApartmentField({
   onChange: (v: string) => void
   suggestions?: string[]
 }) {
-  const [loadedSuggestions, setLoadedSuggestions] = useState<string[]>([])
-  const [open, setOpen] = useState(false)
-
   const fullValue = lockApartment ? apartmentNo || value : value
-  const suffix = apartmentSuffix(fullValue)
+  const parsed = parseTowerFlatSelection(fullValue)
+  const [tower, setTower] = useState<SocietyTower | ''>(parsed.tower)
+  const [flatCode, setFlatCode] = useState(parsed.flatCode)
 
   useEffect(() => {
-    if (externalSuggestions?.length) return
-    fetchApartmentSuggestions().then(setLoadedSuggestions)
-  }, [externalSuggestions])
+    const next = parseTowerFlatSelection(value)
+    setTower(next.tower)
+    setFlatCode(next.flatCode)
+  }, [value])
 
-  const allSuggestions = externalSuggestions?.length ? externalSuggestions : loadedSuggestions
+  const flatOptions = useMemo(() => {
+    if (!tower) return []
+    return SOCIETY_FLAT_CODES[tower].map((code) => buildSocietyApartmentNo(tower, code))
+  }, [tower])
 
-  const filtered = useMemo(
-    () => filterApartmentSuggestions(allSuggestions, suffix),
-    [allSuggestions, suffix]
-  )
-
-  function handleSuffixChange(raw: string) {
-    const digits = raw.replace(/\D/g, '').toUpperCase()
-    onChange(digits ? buildApartmentNo(digits) : '')
-    setOpen(true)
+  function handleTowerChange(nextTower: string) {
+    if (!isSocietyTower(nextTower)) {
+      setTower('')
+      setFlatCode('')
+      onChange('')
+      return
+    }
+    setTower(nextTower)
+    setFlatCode('')
+    onChange('')
   }
 
-  function pickSuggestion(apt: string) {
-    onChange(apt)
-    setOpen(false)
+  function handleFlatChange(nextCode: string) {
+    setFlatCode(nextCode)
+    onChange(tower && nextCode ? buildSocietyApartmentNo(tower, nextCode) : '')
   }
 
   if (lockApartment) {
+    const lockedTower = parseTowerFlatSelection(fullValue).tower
     return (
-      <div className="field">
-        <label>Apartment No</label>
-        <div className="apartment-input-group apartment-input-locked">
-          <span className="apartment-prefix">{APARTMENT_PREFIX}</span>
-          <input
-            required
-            className="apartment-suffix-input"
-            value={suffix}
-            readOnly
-            disabled
-          />
+      <div className="field apartment-field apartment-picker-field">
+        <div className="apartment-picker-grid apartment-picker-locked">
+          <div className="field apartment-tower-field">
+            <label>Tower</label>
+            <input value={lockedTower ? `Tower ${lockedTower}` : '—'} readOnly disabled />
+          </div>
+          <div className="field apartment-flat-field">
+            <label>Apartment No</label>
+            <input value={fullValue || ''} readOnly disabled />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="field apartment-field">
-      <label>Apartment No</label>
-      <div className="apartment-input-group">
-        <span className="apartment-prefix">{APARTMENT_PREFIX}</span>
-        <input
-          required
-          className="apartment-suffix-input"
-          value={suffix}
-          onChange={(e) => handleSuffixChange(e.target.value)}
-          onFocus={() => setOpen(true)}
-          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-          placeholder="30406"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={6}
-        />
+    <div className="field apartment-field apartment-picker-field">
+      <div className="apartment-picker-grid">
+        <div className="field apartment-tower-field">
+          <label>Tower</label>
+          <select required value={tower} onChange={(e) => handleTowerChange(e.target.value)}>
+            <option value="">Select tower</option>
+            {TOWER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field apartment-flat-field">
+          <label>Apartment No</label>
+          <select
+            required
+            value={flatCode}
+            disabled={!tower}
+            onChange={(e) => handleFlatChange(e.target.value)}
+          >
+            <option value="">{tower ? 'Select apartment' : 'Choose tower first'}</option>
+            {flatOptions.map((apt) => (
+              <option key={apt} value={apt.slice(5)}>
+                {apt}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-      {suffix && (
-        <p className="form-hint apartment-preview">Full number: {buildApartmentNo(suffix)}</p>
-      )}
-      {open && filtered.length > 0 && (
-        <ul className="apartment-suggestions" role="listbox">
-          {filtered.map((apt) => (
-            <li key={apt}>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pickSuggestion(apt)}>
-                <span className="apartment-suggestion-prefix">{APARTMENT_PREFIX}</span>
-                <span>{apartmentSuffix(apt)}</span>
-                <span className="apartment-suggestion-full">{apt}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   )
-}
-
-export type ModuleProps = import('../lib/types').FormProps & {
-  search: string
-  onEdit?: (row: unknown) => void
-  onDelete?: (table: string, id: string) => void
 }

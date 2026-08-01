@@ -88,9 +88,9 @@ export function ReportsPanel({ flats, leases, vehicles, rfids, drivers, maids, s
           <h3>Security & FMG</h3>
           <div className="table-wrap table-compact">
             <table>
-              <thead><tr><th>Name</th><th>Type</th><th>Shift</th></tr></thead>
+              <thead><tr><th>Name</th><th>Type</th><th>Designation</th><th>Shift</th></tr></thead>
               <tbody>{security.slice(0, 8).map((s) => (
-                <tr key={s.id}><td>{s.name}</td><td>{s.employee_type}</td><td>{s.shift}</td></tr>
+                <tr key={s.id}><td>{s.name}</td><td>{s.employee_type}</td><td>{s.designation || '—'}</td><td>{s.shift}</td></tr>
               ))}</tbody>
             </table>
           </div>

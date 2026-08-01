@@ -94,7 +94,7 @@ create table public.security_staff (
   aadhar_number text,
   employee_id text,
   shift public.shift_type default 'day',
-  rfid_no text,
+  designation text,
   address text,
   photo_url text,
   notes text,

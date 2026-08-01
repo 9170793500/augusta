@@ -5,14 +5,7 @@ import { isSupabaseConfigured, supabaseProjectRef } from '../lib/supabase'
 import { AuthFooter, formatAuthError } from '../components/AuthFooter'
 import { fetchPublicNotifications } from '../components/NotificationsPanel'
 import type { SocietyNotification } from '../lib/types'
-import loginImage from '../augusta_login_image.jpg'
-
-const GALLERY = [
-  { src: loginImage, cap: 'The Towers — Evening' },
-  { src: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=900&q=80', cap: 'The Fairway View' },
-  { src: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80', cap: 'Tower Lobby' },
-  { src: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=900&q=80', cap: 'Clubhouse & Pool' },
-]
+import { LandingGallery } from '../components/LandingGallery'
 
 const MODULES = [
   { num: '01', title: 'Resident Directory', desc: 'Ownership and occupancy status — Owner, Tenant, or Vacant — for every apartment.', meta: '36 RECORDS', hash: '#directory' },
@@ -38,18 +31,10 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [notices, setNotices] = useState<SocietyNotification[]>([])
-  const [galleryIdx, setGalleryIdx] = useState(0)
   const projectRef = supabaseProjectRef()
 
   useEffect(() => {
     fetchPublicNotifications().then(setNotices)
-  }, [])
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setGalleryIdx((i) => (i + 1) % GALLERY.length)
-    }, 3200)
-    return () => window.clearInterval(timer)
   }, [])
 
   if (!loading && session && profile) {
@@ -124,14 +109,7 @@ export function LoginPage() {
             </button>
           </div>
 
-          <div className="public-gallery" aria-label="Augusta Golf Homes gallery">
-            {GALLERY.map((frame, i) => (
-              <div key={frame.cap} className={`public-gallery-frame${i === galleryIdx ? ' active' : ''}`}>
-                <img src={frame.src} alt={frame.cap} loading="lazy" />
-                <div className="public-gallery-cap">{frame.cap}</div>
-              </div>
-            ))}
-          </div>
+          <LandingGallery />
         </div>
       </section>
 

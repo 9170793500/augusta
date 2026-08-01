@@ -22,11 +22,13 @@ function emptyLeaseForm(): LeaseFieldValues {
 }
 
 function mergeParsedFields(current: LeaseFieldValues, parsed: ParsedLeaseFields): LeaseFieldValues {
+  const lease_end = parsed.lease_end || current.lease_end
   return {
     ...current,
     tenant_name: parsed.tenant_name || current.tenant_name,
     lease_start: parsed.lease_start || current.lease_start,
-    lease_end: parsed.lease_end || current.lease_end,
+    lease_end,
+    status: parsed.status || current.status,
   }
 }
 

@@ -9,7 +9,7 @@ const empty = {
   aadhar_number: '',
   employee_id: '',
   shift: 'day' as ShiftType,
-  rfid_no: '',
+  designation: '',
   address: '',
   notes: '',
 }
@@ -39,7 +39,7 @@ export function SecurityForm({ onSaved }: Props) {
       aadhar_number: form.aadhar_number.trim() || null,
       employee_id: form.employee_id.trim() || null,
       shift: form.shift,
-      rfid_no: form.rfid_no.trim() || null,
+      designation: form.designation.trim() || null,
       address: form.address.trim() || null,
       notes: form.notes.trim() || null,
     } as never)
@@ -98,8 +98,12 @@ export function SecurityForm({ onSaved }: Props) {
           <input value={form.aadhar_number} onChange={(e) => set('aadhar_number', e.target.value)} />
         </div>
         <div className="field">
-          <label>RFID No</label>
-          <input value={form.rfid_no} onChange={(e) => set('rfid_no', e.target.value)} />
+          <label>Designation</label>
+          <input
+            value={form.designation}
+            onChange={(e) => set('designation', e.target.value)}
+            placeholder="e.g. Security Guard, Cleaner, Supervisor"
+          />
         </div>
         <div className="field full">
           <label>Address</label>

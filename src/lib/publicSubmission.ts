@@ -295,3 +295,58 @@ export function detailSummary(details: Record<string, unknown>): string {
       : ''
   return [name, mobile, lease].filter(Boolean).join(' · ') || 'Details submitted'
 }
+
+const DETAIL_FIELD_LABELS: Record<string, string> = {
+  full_name: 'Full name',
+  father_name: 'Father name',
+  tenant_name: 'Tenant name',
+  name: 'Name',
+  driver_name: 'Driver name',
+  mobile: 'Mobile',
+  alt_mobile: 'Alt. mobile',
+  email: 'Email',
+  aadhar_number: 'Aadhar',
+  pan_number: 'PAN',
+  family_members: 'Family members',
+  lease_start: 'Lease start',
+  lease_end: 'Lease end',
+  status: 'Status',
+  notes: 'Notes',
+  vehicle_no: 'Vehicle no',
+  make_model: 'Make / model',
+  colour: 'Colour',
+  licence_number: 'Licence number',
+  licence_valid_from: 'Licence valid from',
+  licence_validity: 'Licence valid till',
+  card_number: 'Card number',
+  card_valid_from: 'Card valid from',
+  card_validity: 'Card valid till',
+  employment_type: 'Employment type',
+  gender: 'Gender',
+  address: 'Address',
+  linked_to: 'Linked to',
+  is_resident: 'Owner resident',
+}
+
+export function formatSubmissionDetailRows(
+  details: Record<string, unknown>
+): { label: string; value: string }[] {
+  return Object.entries(details)
+    .filter(([, value]) => value != null && String(value).trim() !== '')
+    .map(([key, value]) => ({
+      label: DETAIL_FIELD_LABELS[key] || key.replace(/_/g, ' '),
+      value: typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value),
+    }))
+}
+
+export function existingSubmissionsForCategory(
+  submissions: PublicSubmission[],
+  apartmentNo: string,
+  category: PublicDetailCategory
+): PublicSubmission[] {
+  const apt = apartmentNo.trim().toUpperCase()
+  if (!apt) return []
+  return submissions
+    .filter((row) => row.apartment_no === apt && row.category === category)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+}

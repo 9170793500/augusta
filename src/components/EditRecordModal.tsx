@@ -107,7 +107,7 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
           aadhar_number: security.aadhar_number || null,
           employee_id: security.employee_id || null,
           shift: security.shift,
-          rfid_no: security.rfid_no || null,
+          designation: security.designation || null,
           address: security.address || null,
           notes: security.notes || null,
         } as never)
@@ -409,10 +409,11 @@ export function EditRecordModal({ target, isAdmin, lockApartment, onClose, onSav
                 />
               </div>
               <div className="field">
-                <label>RFID No</label>
+                <label>Designation</label>
                 <input
-                  value={security.rfid_no || ''}
-                  onChange={(e) => setSecurity({ ...security, rfid_no: e.target.value })}
+                  value={security.designation || ''}
+                  onChange={(e) => setSecurity({ ...security, designation: e.target.value })}
+                  placeholder="e.g. Security Guard, Cleaner, Supervisor"
                 />
               </div>
             </div>

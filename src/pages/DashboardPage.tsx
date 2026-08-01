@@ -286,7 +286,10 @@ export function DashboardPage() {
     () => scopedMaids.filter((r) => matchesTowerFilter(towerFilter, r.apartment_no) && match([r.apartment_no, r.name, r.card_number, r.employment_type])),
     [scopedMaids, q, towerFilter]
   )
-  const filteredSecurity = useMemo(() => security.filter((r) => match([r.name, r.mobile, r.employee_type])), [security, q])
+  const filteredSecurity = useMemo(
+    () => security.filter((r) => match([r.name, r.mobile, r.employee_type, r.designation])),
+    [security, q]
+  )
   useEffect(() => {
     if (lockApartment && apartmentNo) setSelectedFlat(apartmentNo)
   }, [lockApartment, apartmentNo])
@@ -776,15 +779,16 @@ export function DashboardPage() {
                 {tab === 'security' && isAdmin && (
                   <div className="table-wrap">
                     <table>
-                      <thead><tr><th>Name</th><th>Type</th><th>Mobile</th><th>Shift</th><th>Actions</th></tr></thead>
+                      <thead><tr><th>Name</th><th>Type</th><th>Designation</th><th>Mobile</th><th>Shift</th><th>Actions</th></tr></thead>
                       <tbody>
                         {filteredSecurity.length === 0 ? (
-                          <tr><td colSpan={5} className="empty">No security / FMG staff yet.</td></tr>
+                          <tr><td colSpan={6} className="empty">No security / FMG staff yet.</td></tr>
                         ) : (
                           filteredSecurity.map((row) => (
                             <tr key={row.id}>
                               <td>{row.name}</td>
                               <td>{row.employee_type.replace('_', ' ')}</td>
+                              <td>{row.designation || '—'}</td>
                               <td>{row.mobile}</td>
                               <td>{row.shift}</td>
                               <td className="actions">

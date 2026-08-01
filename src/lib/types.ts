@@ -167,7 +167,7 @@ export type SecurityStaff = {
   aadhar_number: string | null
   employee_id: string | null
   shift: ShiftType | null
-  rfid_no: string | null
+  designation: string | null
   address: string | null
   notes: string | null
   created_at: string

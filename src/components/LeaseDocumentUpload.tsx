@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 import type { ParsedLeaseFields } from '../lib/leaseDocumentParse'
-import { extractTextFromLeaseFile, LEASE_FILE_ACCEPT, parseLeaseFromText } from '../lib/leaseDocumentParse'
+import {
+  LEASE_FILE_ACCEPT,
+  parseLeaseFromFile,
+} from '../lib/leaseDocumentParse'
 import { uploadLeaseDocument } from '../lib/leaseDocumentUpload'
 
 type Props = {
@@ -31,31 +34,32 @@ export function LeaseDocumentUpload({
     if (!file || disabled) return
     setBusy(true)
     setError(null)
-    setMessage(null)
+    setMessage('Uploading lease document…')
 
     try {
+      setMessage('Reading lease document…')
+      const parsed = await parseLeaseFromFile(file, (progress) => setMessage(progress))
+
+      setMessage('Uploading lease document…')
       const url = await uploadLeaseDocument(file, apartmentNo)
       onDocumentUrl(url)
       onFileName(file.name)
 
-      try {
-        const text = await extractTextFromLeaseFile(file)
-        const parsed = parseLeaseFromText(text)
-        const filled = [parsed.tenant_name, parsed.lease_start, parsed.lease_end].filter(Boolean).length
+      const filled = [parsed.tenant_name, parsed.lease_start, parsed.lease_end].filter(Boolean).length
 
-        if (filled > 0) {
-          onParsed(parsed)
-          setMessage(
-            `Read ${filled} field(s) from the document. Review the form below and edit if needed before submitting.`
-          )
-        } else {
-          setMessage('Document uploaded. Could not detect lease fields automatically — please fill the form manually.')
-        }
-      } catch {
-        setMessage('Document uploaded. Auto-fill could not read this file — please fill the form manually.')
+      if (filled > 0) {
+        onParsed(parsed)
+        const statusNote = parsed.status === 'active' ? ' Status set to Active.' : parsed.status === 'expired' ? ' Status set to Expired.' : ''
+        setMessage(
+          `Read ${filled} field(s) from the document.${statusNote} Review below and click Save lease.`
+        )
+      } else {
+        setMessage('Document uploaded. Could not detect lease fields automatically — please fill the form manually.')
       }
     } catch (err) {
+      console.warn('Lease upload/read failed:', err)
       setError(err instanceof Error ? err.message : 'Could not upload the lease document.')
+      setMessage(null)
     }
 
     setBusy(false)
@@ -75,7 +79,7 @@ export function LeaseDocumentUpload({
       <div className="field full">
         <label>Lease copy (PDF, DOCX, DOC, or photo)</label>
         <p className="form-hint">
-          Upload the agreement to auto-fill tenant name and dates. You can still edit every field manually before saving.
+          Upload the agreement to auto-fill tenant name, dates, and status. You can still edit every field before saving.
         </p>
         <div className="lease-upload-actions">
           <input
@@ -92,9 +96,9 @@ export function LeaseDocumentUpload({
             </button>
           )}
         </div>
-        {busy && <div className="alert alert-warn">Reading document and uploading…</div>}
+        {busy && <div className="alert alert-warn">{message || 'Reading document and uploading…'}</div>}
         {error && <div className="alert alert-error">{error}</div>}
-        {message && !error && <div className="alert alert-ok">{message}</div>}
+        {message && !error && !busy && <div className="alert alert-ok">{message}</div>}
         {documentUrl && (
           <p className="form-hint lease-file-meta">
             Attached: {fileName || 'lease document'}{' '}
@@ -154,8 +158,15 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
           type="date"
           required
           disabled={readOnly}
+          onChange={(e) => {
+            const lease_end = e.target.value
+            onChange({
+              ...value,
+              lease_end,
+              status: lease_end && lease_end < new Date().toISOString().slice(0, 10) ? 'expired' : 'active',
+            })
+          }}
           value={value.lease_end}
-          onChange={(e) => onChange({ ...value, lease_end: e.target.value })}
         />
       </div>
       <div className="field">
