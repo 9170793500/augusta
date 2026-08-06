@@ -222,9 +222,23 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
             </div>
           )}
           {isAdmin && (
-            <div className="sidebar-section-head">
-              <span className="sidebar-section-label">{activeGroup}</span>
-            </div>
+            <>
+              <div className="sidebar-section-head">
+                <span className="sidebar-section-label">{activeGroup}</span>
+              </div>
+              <div className="sidebar-mobile-categories" aria-label="Module categories">
+                {navGroups.map((group) => (
+                  <button
+                    key={group.label}
+                    type="button"
+                    className={`sidebar-category-btn${activeGroup === group.label ? ' active' : ''}`}
+                    onClick={() => selectCategory(group.label)}
+                  >
+                    {group.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <nav className="sidebar-nav">
