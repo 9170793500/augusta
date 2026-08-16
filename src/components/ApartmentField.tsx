@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { FormFieldLabel } from './FormFieldLabel'
 import {
   buildSocietyApartmentNo,
   isSocietyTower,
@@ -75,7 +76,7 @@ export function ApartmentField({
     <div className="field apartment-field apartment-picker-field">
       <div className="apartment-picker-grid">
         <div className="field apartment-tower-field">
-          <label>Tower</label>
+          <FormFieldLabel required>Tower</FormFieldLabel>
           <select required value={tower} onChange={(e) => handleTowerChange(e.target.value)}>
             <option value="">Select tower</option>
             {TOWER_OPTIONS.map((opt) => (
@@ -86,7 +87,7 @@ export function ApartmentField({
           </select>
         </div>
         <div className="field apartment-flat-field">
-          <label>Apartment No</label>
+          <FormFieldLabel required>Apartment No</FormFieldLabel>
           <select
             required
             value={flatCode}

@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { FormFieldLabel } from './FormFieldLabel'
 
 export type VehicleRow = {
   key: string
@@ -81,11 +82,12 @@ export function PublicVehicleForm({
           </div>
           <div className="form-grid">
             <div className="field">
-              <label>Vehicle no</label>
+              <FormFieldLabel required>Vehicle no</FormFieldLabel>
               <input
                 required
                 value={row.vehicle_no}
-                onChange={(e) => updateRow(row.key, { vehicle_no: e.target.value })}
+                onChange={(e) => updateRow(row.key, { vehicle_no: e.target.value.toUpperCase() })}
+                placeholder="Registration number"
               />
             </div>
             <div className="field">

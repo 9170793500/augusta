@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react'
 import type { EmploymentType, StaffGender } from '../lib/types'
+import { FormFieldLabel } from './FormFieldLabel'
+import { sanitizeAadhaar, sanitizeMobile } from '../lib/fieldValidation'
 
 export type StaffRow = {
   key: string
@@ -103,16 +105,17 @@ export function PublicStaffForm({
               </select>
             </div>
             <div className="field">
-              <label>Card number</label>
+              <FormFieldLabel required>Card number</FormFieldLabel>
               <input
+                required
                 value={row.card_number}
                 onChange={(e) => updateRow(row.key, { card_number: e.target.value })}
                 placeholder="Gate pass / card no"
               />
             </div>
             <div className="field full">
-              <label>Name</label>
-              <input value={row.name} onChange={(e) => updateRow(row.key, { name: e.target.value })} />
+              <FormFieldLabel required>Name</FormFieldLabel>
+              <input required value={row.name} onChange={(e) => updateRow(row.key, { name: e.target.value })} />
             </div>
             {showRole && (
               <div className="field full">
@@ -147,15 +150,26 @@ export function PublicStaffForm({
               </select>
             </div>
             <div className="field">
-              <label>Aadhar number</label>
+              <FormFieldLabel required>Aadhar number</FormFieldLabel>
               <input
+                required
+                inputMode="numeric"
+                maxLength={12}
                 value={row.aadhar_number}
-                onChange={(e) => updateRow(row.key, { aadhar_number: e.target.value })}
+                onChange={(e) => updateRow(row.key, { aadhar_number: sanitizeAadhaar(e.target.value) })}
+                placeholder="12-digit Aadhar"
               />
             </div>
             <div className="field">
-              <label>Mobile</label>
-              <input value={row.mobile} onChange={(e) => updateRow(row.key, { mobile: e.target.value })} />
+              <FormFieldLabel required>Mobile</FormFieldLabel>
+              <input
+                required
+                inputMode="numeric"
+                maxLength={10}
+                value={row.mobile}
+                onChange={(e) => updateRow(row.key, { mobile: sanitizeMobile(e.target.value) })}
+                placeholder="10-digit mobile"
+              />
             </div>
             <div className="field">
               <label>Card start date</label>
@@ -221,5 +235,7 @@ export function PublicStaffForm({
 }
 
 export function staffRowsToPayload(rows: StaffRow[]) {
-  return rows.filter((r) => r.name.trim() && r.aadhar_number.trim() && r.card_number.trim())
+  return rows.filter(
+    (r) => r.name.trim() && r.aadhar_number.trim() && r.card_number.trim() && r.mobile.trim()
+  )
 }

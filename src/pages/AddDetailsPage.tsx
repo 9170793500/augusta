@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApartmentField } from '../components/ApartmentField'
+import { FormFieldLabel } from '../components/FormFieldLabel'
+import { ResidentDetailFields } from '../components/ResidentDetailFields'
 import { PublicStaffForm, blankStaffRow, staffRowsToPayload, type StaffRow } from '../components/PublicStaffForm'
 import {
   PublicVehicleForm,
@@ -30,6 +32,16 @@ import {
   type PublicDetailCategory,
   type PublicSubmission,
 } from '../lib/publicSubmission'
+import {
+  sanitizeAadhaar,
+  sanitizeMobile,
+  validateDriverForm,
+  validateLeaseForm,
+  validateResidentForm,
+  validateStaffRow,
+  validateVehicleNo,
+  staffRowHasPartialData,
+} from '../lib/fieldValidation'
 
 type TabId = PublicDetailCategory | 'view'
 
@@ -329,6 +341,21 @@ export function AddDetailsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  function validateCategoryForm(category: PublicDetailCategory): string | null {
+    switch (category) {
+      case 'owner':
+        return validateResidentForm(ownerForm, 'Owner')
+      case 'tenant':
+        return validateResidentForm(tenantForm, 'Tenant')
+      case 'lease':
+        return validateLeaseForm(leaseForm, tenantForm.full_name || contact.submitterName)
+      case 'driver':
+        return validateDriverForm(driverForm)
+      default:
+        return null
+    }
+  }
+
   async function handleSubmit(e: FormEvent, category: PublicDetailCategory, details: Record<string, unknown>) {
     e.preventDefault()
     setError(null)
@@ -338,6 +365,12 @@ export function AddDetailsPage() {
     const contactErr = validateContact()
     if (contactErr) {
       setError(contactErr)
+      return
+    }
+
+    const formErr = validateCategoryForm(category)
+    if (formErr) {
+      setError(formErr)
       return
     }
 
@@ -388,8 +421,18 @@ export function AddDetailsPage() {
 
     const filled = staffRowsToPayload(rows)
     if (filled.length === 0) {
-      setError('Fill at least one person with Name, Aadhar and Card Number. Remove empty rows if not needed.')
+      setError('Fill at least one domestic help with Name, Mobile, Aadhar and Card Number. Remove empty rows if not needed.')
       return
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      if (!staffRowHasPartialData(row)) continue
+      const err = validateStaffRow(row, `${categoryLabel(category)} ${i + 1}`)
+      if (err) {
+        setError(err)
+        return
+      }
     }
 
     const apt = normalizeApartmentInput(contact.apartmentNo)
@@ -438,6 +481,16 @@ export function AddDetailsPage() {
     if (filled.length === 0) {
       setError('Fill at least one vehicle with Vehicle No. Remove empty rows if not needed.')
       return
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      if (!row.vehicle_no.trim()) continue
+      const err = validateVehicleNo(row.vehicle_no)
+      if (err) {
+        setError(`Vehicle ${i + 1}: ${err}`)
+        return
+      }
     }
 
     const apt = normalizeApartmentInput(contact.apartmentNo)
@@ -517,7 +570,7 @@ export function AddDetailsPage() {
 
         <section className="add-details-contact card-section">
           <h2>Details</h2>
-          <p className="form-hint">Required for every submission — saved on this device only.</p>
+          <p className="form-hint">Fields marked with * are required for every submission — saved on this device only.</p>
           <div className="form-grid">
             <div className="field full">
               <ApartmentField
@@ -528,7 +581,7 @@ export function AddDetailsPage() {
               />
             </div>
             <div className="field">
-              <label>Your full name</label>
+              <FormFieldLabel required>Your full name</FormFieldLabel>
               <input
                 required
                 value={contact.submitterName}
@@ -537,7 +590,7 @@ export function AddDetailsPage() {
               />
             </div>
             <div className="field">
-              <label>Living as</label>
+              <FormFieldLabel required>Living as</FormFieldLabel>
               <select
                 value={contact.livingAs}
                 onChange={(e) => setLivingAs(e.target.value as LivingAs)}
@@ -587,16 +640,11 @@ export function AddDetailsPage() {
           >
             <h3>{editing?.category === 'owner' ? 'Edit owner details' : 'Owner details'}</h3>
             <p className="form-hint">Saved to Flats + Owner records (same as admin dashboard).</p>
-            <div className="form-grid">
-              <div className="field full"><label>Full name</label><input required value={ownerForm.full_name} onChange={(e) => setOwnerForm({ ...ownerForm, full_name: e.target.value })} /></div>
-              <div className="field full"><label>Father name</label><input value={ownerForm.father_name} onChange={(e) => setOwnerForm({ ...ownerForm, father_name: e.target.value })} /></div>
-              <div className="field"><label>Mobile</label><input value={ownerForm.mobile} onChange={(e) => setOwnerForm({ ...ownerForm, mobile: e.target.value })} /></div>
-              <div className="field"><label>Alt. mobile</label><input value={ownerForm.alt_mobile} onChange={(e) => setOwnerForm({ ...ownerForm, alt_mobile: e.target.value })} /></div>
-              <div className="field"><label>Email</label><input type="email" value={ownerForm.email} onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })} /></div>
-              <div className="field"><label>Aadhar</label><input value={ownerForm.aadhar_number} onChange={(e) => setOwnerForm({ ...ownerForm, aadhar_number: e.target.value })} /></div>
-              <div className="field"><label>PAN</label><input value={ownerForm.pan_number} onChange={(e) => setOwnerForm({ ...ownerForm, pan_number: e.target.value })} /></div>
-              <div className="field"><label>Family members</label><input type="number" min={0} value={ownerForm.family_members} onChange={(e) => setOwnerForm({ ...ownerForm, family_members: e.target.value })} placeholder="Number of family members" /></div>
-            </div>
+            <ResidentDetailFields
+              form={ownerForm}
+              onChange={(next) => setOwnerForm({ ...next, occupancy_role: 'owner' })}
+              roleLabel="Owner"
+            />
             <div className="form-actions-row">
               {editing?.category === 'owner' && (
                 <button type="button" className="btn btn-ghost" onClick={() => { clearEditing(); setTab('view') }}>Cancel edit</button>
@@ -614,16 +662,11 @@ export function AddDetailsPage() {
           <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'tenant', tenantForm)}>
             <h3>{editing?.category === 'tenant' ? 'Edit tenant details' : 'Tenant details'}</h3>
             <p className="form-hint">Saved to Resident Directory (same as admin dashboard).</p>
-            <div className="form-grid">
-              <div className="field full"><label>Full name</label><input required value={tenantForm.full_name} onChange={(e) => setTenantForm({ ...tenantForm, full_name: e.target.value })} /></div>
-              <div className="field full"><label>Father name</label><input value={tenantForm.father_name} onChange={(e) => setTenantForm({ ...tenantForm, father_name: e.target.value })} /></div>
-              <div className="field"><label>Mobile</label><input value={tenantForm.mobile} onChange={(e) => setTenantForm({ ...tenantForm, mobile: e.target.value })} /></div>
-              <div className="field"><label>Alt. mobile</label><input value={tenantForm.alt_mobile} onChange={(e) => setTenantForm({ ...tenantForm, alt_mobile: e.target.value })} /></div>
-              <div className="field"><label>Email</label><input type="email" value={tenantForm.email} onChange={(e) => setTenantForm({ ...tenantForm, email: e.target.value })} /></div>
-              <div className="field"><label>Aadhar</label><input value={tenantForm.aadhar_number} onChange={(e) => setTenantForm({ ...tenantForm, aadhar_number: e.target.value })} /></div>
-              <div className="field"><label>PAN</label><input value={tenantForm.pan_number} onChange={(e) => setTenantForm({ ...tenantForm, pan_number: e.target.value })} /></div>
-              <div className="field"><label>Family members</label><input type="number" min={0} value={tenantForm.family_members} onChange={(e) => setTenantForm({ ...tenantForm, family_members: e.target.value })} placeholder="Number of family members" /></div>
-            </div>
+            <ResidentDetailFields
+              form={tenantForm}
+              onChange={(next) => setTenantForm({ ...next, occupancy_role: 'tenant' })}
+              roleLabel="Tenant"
+            />
             <div className="form-actions-row">
               {editing?.category === 'tenant' && (
                 <button type="button" className="btn btn-ghost" onClick={() => { clearEditing(); setTab('view') }}>Cancel edit</button>
@@ -692,15 +735,56 @@ export function AddDetailsPage() {
             <h3>{editing?.category === 'driver' ? 'Edit driver details' : 'Driver details'}</h3>
             <p className="form-hint">Saved to Drivers table (same as admin dashboard).</p>
             <div className="form-grid">
-              <div className="field"><label>Driver name</label><input required value={driverForm.driver_name} onChange={(e) => setDriverForm({ ...driverForm, driver_name: e.target.value })} /></div>
-              <div className="field"><label>Vehicle no</label><input value={driverForm.vehicle_no} onChange={(e) => setDriverForm({ ...driverForm, vehicle_no: e.target.value })} /></div>
-              <div className="field"><label>Mobile</label><input value={driverForm.mobile} onChange={(e) => setDriverForm({ ...driverForm, mobile: e.target.value })} /></div>
-              <div className="field"><label>Licence number</label><input value={driverForm.licence_number} onChange={(e) => setDriverForm({ ...driverForm, licence_number: e.target.value })} /></div>
-              <div className="field"><label>Licence start date</label><input type="date" value={driverForm.licence_valid_from} onChange={(e) => setDriverForm({ ...driverForm, licence_valid_from: e.target.value })} /></div>
-              <div className="field"><label>Licence expiry date</label><input type="date" value={driverForm.licence_validity} onChange={(e) => setDriverForm({ ...driverForm, licence_validity: e.target.value })} /></div>
-              <div className="field"><label>Aadhar</label><input value={driverForm.aadhar_number} onChange={(e) => setDriverForm({ ...driverForm, aadhar_number: e.target.value })} /></div>
-              <div className="field full"><label>Address</label><input value={driverForm.address} onChange={(e) => setDriverForm({ ...driverForm, address: e.target.value })} /></div>
-              <div className="field full"><label>Notes</label><input value={driverForm.notes} onChange={(e) => setDriverForm({ ...driverForm, notes: e.target.value })} /></div>
+              <div className="field">
+                <FormFieldLabel required>Driver name</FormFieldLabel>
+                <input required value={driverForm.driver_name} onChange={(e) => setDriverForm({ ...driverForm, driver_name: e.target.value })} />
+              </div>
+              <div className="field">
+                <FormFieldLabel>Vehicle no</FormFieldLabel>
+                <input value={driverForm.vehicle_no} onChange={(e) => setDriverForm({ ...driverForm, vehicle_no: e.target.value.toUpperCase() })} placeholder="Optional" />
+              </div>
+              <div className="field">
+                <FormFieldLabel required>Mobile</FormFieldLabel>
+                <input
+                  required
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={driverForm.mobile}
+                  onChange={(e) => setDriverForm({ ...driverForm, mobile: sanitizeMobile(e.target.value) })}
+                  placeholder="10-digit mobile"
+                />
+              </div>
+              <div className="field">
+                <FormFieldLabel required>Licence number</FormFieldLabel>
+                <input required value={driverForm.licence_number} onChange={(e) => setDriverForm({ ...driverForm, licence_number: e.target.value.toUpperCase() })} />
+              </div>
+              <div className="field">
+                <FormFieldLabel>Licence start date</FormFieldLabel>
+                <input type="date" value={driverForm.licence_valid_from} onChange={(e) => setDriverForm({ ...driverForm, licence_valid_from: e.target.value })} />
+              </div>
+              <div className="field">
+                <FormFieldLabel required>Licence expiry date</FormFieldLabel>
+                <input type="date" required value={driverForm.licence_validity} onChange={(e) => setDriverForm({ ...driverForm, licence_validity: e.target.value })} />
+              </div>
+              <div className="field">
+                <FormFieldLabel required>Aadhar</FormFieldLabel>
+                <input
+                  required
+                  inputMode="numeric"
+                  maxLength={12}
+                  value={driverForm.aadhar_number}
+                  onChange={(e) => setDriverForm({ ...driverForm, aadhar_number: sanitizeAadhaar(e.target.value) })}
+                  placeholder="12-digit Aadhar"
+                />
+              </div>
+              <div className="field full">
+                <FormFieldLabel>Address</FormFieldLabel>
+                <input value={driverForm.address} onChange={(e) => setDriverForm({ ...driverForm, address: e.target.value })} placeholder="Optional" />
+              </div>
+              <div className="field full">
+                <FormFieldLabel>Notes</FormFieldLabel>
+                <input value={driverForm.notes} onChange={(e) => setDriverForm({ ...driverForm, notes: e.target.value })} placeholder="Optional" />
+              </div>
             </div>
             <div className="form-actions-row">
               {editing?.category === 'driver' && (

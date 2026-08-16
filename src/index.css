@@ -393,6 +393,17 @@ a:hover {
   color: var(--text-muted);
 }
 
+.field-required {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.field input:required:invalid:not(:placeholder-shown),
+.field select:required:invalid,
+.field textarea:required:invalid:not(:placeholder-shown) {
+  border-color: #e57373;
+}
+
 .apartment-input-group {
   display: flex;
   align-items: stretch;

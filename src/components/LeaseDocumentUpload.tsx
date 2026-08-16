@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { FormFieldLabel } from './FormFieldLabel'
 import type { ParsedLeaseFields } from '../lib/leaseDocumentParse'
 import {
   LEASE_FILE_ACCEPT,
@@ -134,7 +135,7 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
   return (
     <div className="form-grid">
       <div className="field full">
-        <label>Tenant name</label>
+        <FormFieldLabel required>Tenant name</FormFieldLabel>
         <input
           required
           disabled={readOnly}
@@ -143,7 +144,7 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
         />
       </div>
       <div className="field">
-        <label>Lease start</label>
+        <FormFieldLabel required>Lease start</FormFieldLabel>
         <input
           type="date"
           required
@@ -153,7 +154,7 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
         />
       </div>
       <div className="field">
-        <label>Lease end</label>
+        <FormFieldLabel required>Lease end</FormFieldLabel>
         <input
           type="date"
           required
@@ -170,7 +171,7 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
         />
       </div>
       <div className="field">
-        <label>Status</label>
+        <FormFieldLabel>Status</FormFieldLabel>
         <select
           disabled={readOnly}
           value={value.status}
@@ -182,7 +183,7 @@ export function LeaseFieldsSection({ value, onChange, readOnly, defaultTenantNam
         </select>
       </div>
       <div className="field full">
-        <label>Notes</label>
+        <FormFieldLabel>Notes</FormFieldLabel>
         <input
           disabled={readOnly}
           value={value.notes}
