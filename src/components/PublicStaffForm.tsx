@@ -107,18 +107,20 @@ export function PublicStaffForm({
                 <option value="part_time">Part-time</option>
               </select>
             </div>
-            <div className="field">
-              <PendingOrNumberField
-                label="Card number"
-                value={row.card_number}
-                onChange={(card_number) => updateRow(row.key, { card_number })}
-                onPendingChange={() =>
-                  updateRow(row.key, { card_valid_from: '', employment_valid_till: '' })
-                }
-                numberPlaceholder="Gate pass / card no"
-                pendingHint="Card start and expiry dates are not needed while Pending."
-              />
-            </div>
+            <PendingOrNumberField
+              label="Card number"
+              value={row.card_number}
+              onChange={(card_number) =>
+                updateRow(row.key, {
+                  card_number,
+                  ...(isPendingValue(card_number)
+                    ? { card_valid_from: '', employment_valid_till: '' }
+                    : {}),
+                })
+              }
+              numberPlaceholder="Gate pass / card no"
+              numberLabel="Enter card number"
+            />
             <div className="field full">
               <FormFieldLabel required>Name</FormFieldLabel>
               <input required value={row.name} onChange={(e) => updateRow(row.key, { name: e.target.value })} />

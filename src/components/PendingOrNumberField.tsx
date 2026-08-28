@@ -10,18 +10,18 @@ type Props = {
   label: string
   value: string
   onChange: (next: string) => void
-  onPendingChange?: () => void
   numberPlaceholder?: string
-  pendingHint?: string
+  pendingLabel?: string
+  numberLabel?: string
 }
 
 export function PendingOrNumberField({
   label,
   value,
   onChange,
-  onPendingChange,
   numberPlaceholder = 'Enter number',
-  pendingHint = 'Start and expiry dates are not needed while Pending.',
+  pendingLabel = 'Pending',
+  numberLabel = 'Enter number',
 }: Props) {
   const pending = isPendingValue(value)
   const [enterMode, setEnterMode] = useState(() => !pending && Boolean(value.trim()))
@@ -37,7 +37,6 @@ export function PendingOrNumberField({
     if (next === 'pending') {
       setEnterMode(false)
       onChange(PENDING_VALUE)
-      onPendingChange?.()
       return
     }
     if (next === 'number') {
@@ -47,30 +46,30 @@ export function PendingOrNumberField({
     }
     setEnterMode(false)
     onChange('')
-    onPendingChange?.()
   }
 
   return (
-    <>
+    <div className="field pending-or-number-field">
       <FormFieldLabel required>{label}</FormFieldLabel>
       <select
         required
         value={choice}
+        title={pending ? 'Card or licence not issued yet — dates are not required.' : undefined}
         onChange={(e) => setChoice(e.target.value as PendingFieldChoice)}
       >
         <option value="">Select…</option>
-        <option value="pending">Pending (not issued yet)</option>
-        <option value="number">Enter number</option>
+        <option value="pending">{pendingLabel}</option>
+        <option value="number">{numberLabel}</option>
       </select>
       {choice === 'number' && (
         <input
           required
+          className="pending-or-number-input"
           value={pending ? '' : value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={numberPlaceholder}
         />
       )}
-      {choice === 'pending' && <p className="form-hint pending-field-hint">{pendingHint}</p>}
-    </>
+    </div>
   )
 }

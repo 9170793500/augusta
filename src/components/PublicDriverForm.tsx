@@ -110,22 +110,20 @@ export function PublicDriverForm({
                   placeholder="10-digit mobile"
                 />
               </div>
-              <div className="field">
-                <PendingOrNumberField
-                  label="Licence number"
-                  value={row.licence_number}
-                  onChange={(licence_number) => updateRow(row.key, { licence_number })}
-                  onPendingChange={() =>
-                    updateRow(row.key, {
-                      licence_number: 'Pending',
-                      licence_valid_from: '',
-                      licence_validity: '',
-                    })
-                  }
-                  numberPlaceholder="Driving licence number"
-                  pendingHint="Licence start and expiry dates are not needed while Pending."
-                />
-              </div>
+              <PendingOrNumberField
+                label="Licence number"
+                value={row.licence_number}
+                onChange={(licence_number) =>
+                  updateRow(row.key, {
+                    licence_number,
+                    ...(isPendingValue(licence_number)
+                      ? { licence_valid_from: '', licence_validity: '' }
+                      : {}),
+                  })
+                }
+                numberPlaceholder="Driving licence number"
+                numberLabel="Enter licence number"
+              />
               {!licencePending && (
                 <>
                   <div className="field">

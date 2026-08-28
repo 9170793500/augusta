@@ -398,20 +398,28 @@ a:hover {
   font-weight: 700;
 }
 
-.pending-or-number-field .form-hint,
-.pending-field-hint {
-  margin: 0.35rem 0 0;
-  font-size: 0.78rem;
+.pending-or-number-field {
+  margin-bottom: 1rem;
 }
 
-.pending-or-number-field select + input {
-  margin-top: 0.5rem;
+.pending-or-number-field select,
+.pending-or-number-input {
+  width: 100%;
+}
+
+.pending-or-number-input {
+  margin-top: 0.15rem;
 }
 
 .field input:required:invalid:not(:placeholder-shown),
 .field select:required:invalid,
 .field textarea:required:invalid:not(:placeholder-shown) {
   border-color: #e57373;
+}
+
+.field select:required:valid,
+.pending-or-number-field select:required:valid {
+  border-color: var(--border);
 }
 
 .apartment-input-group {
@@ -1819,6 +1827,7 @@ a:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 0.75rem;
+  align-items: start;
 }
 
 .form-grid .full {
