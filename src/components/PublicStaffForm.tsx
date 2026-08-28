@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react'
 import type { EmploymentType, StaffGender } from '../lib/types'
 import { FormFieldLabel } from './FormFieldLabel'
-import { sanitizeAadhaar, sanitizeMobile } from '../lib/fieldValidation'
+import { sanitizeAadhaar, sanitizeMobile, isPendingValue } from '../lib/fieldValidation'
+import { PendingOrNumberField } from './PendingOrNumberField'
 
 export type StaffRow = {
   key: string
@@ -74,7 +75,9 @@ export function PublicStaffForm({
       <h3>{title}</h3>
       <p className="form-hint">{hint}</p>
 
-      {rows.map((row, index) => (
+      {rows.map((row, index) => {
+        const cardPending = isPendingValue(row.card_number)
+        return (
         <div className="entry-block" key={row.key}>
           <div className="entry-head">
             <strong>
@@ -105,12 +108,15 @@ export function PublicStaffForm({
               </select>
             </div>
             <div className="field">
-              <FormFieldLabel required>Card number</FormFieldLabel>
-              <input
-                required
+              <PendingOrNumberField
+                label="Card number"
                 value={row.card_number}
-                onChange={(e) => updateRow(row.key, { card_number: e.target.value })}
-                placeholder="Gate pass / card no"
+                onChange={(card_number) => updateRow(row.key, { card_number })}
+                onPendingChange={() =>
+                  updateRow(row.key, { card_valid_from: '', employment_valid_till: '' })
+                }
+                numberPlaceholder="Gate pass / card no"
+                pendingHint="Card start and expiry dates are not needed while Pending."
               />
             </div>
             <div className="field full">
@@ -171,29 +177,34 @@ export function PublicStaffForm({
                 placeholder="10-digit mobile"
               />
             </div>
-            <div className="field">
-              <label>Card start date</label>
-              <input
-                type="date"
-                value={row.card_valid_from}
-                onChange={(e) => updateRow(row.key, { card_valid_from: e.target.value })}
-              />
-            </div>
-            <div className="field">
-              <label>Card expiry date</label>
-              <input
-                type="date"
-                value={row.employment_valid_till}
-                onChange={(e) => updateRow(row.key, { employment_valid_till: e.target.value })}
-              />
-            </div>
+            {!cardPending && (
+              <>
+                <div className="field">
+                  <label>Card start date</label>
+                  <input
+                    type="date"
+                    value={row.card_valid_from}
+                    onChange={(e) => updateRow(row.key, { card_valid_from: e.target.value })}
+                  />
+                </div>
+                <div className="field">
+                  <label>Card expiry date</label>
+                  <input
+                    type="date"
+                    value={row.employment_valid_till}
+                    onChange={(e) => updateRow(row.key, { employment_valid_till: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
             <div className="field full">
               <label>Notes</label>
               <textarea value={row.notes} onChange={(e) => updateRow(row.key, { notes: e.target.value })} />
             </div>
           </div>
         </div>
-      ))}
+        )
+      })}
 
       {!editing && (
         <div className="add-more-row">

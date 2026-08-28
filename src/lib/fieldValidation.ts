@@ -2,6 +2,20 @@ export function digitsOnly(value: string): string {
   return value.replace(/\D/g, '')
 }
 
+export const PENDING_VALUE = 'Pending'
+
+export function isPendingValue(value: string): boolean {
+  return value.trim().toLowerCase() === 'pending'
+}
+
+export type PendingFieldChoice = '' | 'pending' | 'number'
+
+export function pendingFieldChoice(value: string): PendingFieldChoice {
+  if (!value.trim()) return ''
+  if (isPendingValue(value)) return 'pending'
+  return 'number'
+}
+
 export function sanitizeMobile(value: string): string {
   return digitsOnly(value).slice(0, 10)
 }
@@ -106,9 +120,27 @@ export function validateDriverForm(form: DriverFormFields): string | null {
   if (!isValidAadhaar(form.aadhar_number)) {
     return 'Driver Aadhar is required — enter exactly 12 digits.'
   }
-  if (!form.licence_number.trim()) return 'Driver licence number is required.'
-  if (!form.licence_validity) return 'Driver licence expiry date is required.'
+  if (!form.licence_number.trim()) return 'Driver licence number is required — enter the number or choose Pending.'
+  if (!isPendingValue(form.licence_number) && !form.licence_validity) {
+    return 'Driver licence expiry date is required when licence number is not Pending.'
+  }
   return null
+}
+
+export function driverRowHasPartialData(row: DriverFormFields & { vehicle_no?: string }): boolean {
+  return Boolean(
+    row.driver_name.trim() ||
+      row.mobile.trim() ||
+      row.aadhar_number.trim() ||
+      row.licence_number.trim() ||
+      row.vehicle_no?.trim()
+  )
+}
+
+export function validateDriverRow(row: DriverFormFields, label: string): string | null {
+  const err = validateDriverForm(row)
+  if (!err) return null
+  return err.replace(/^Driver /, `${label}: `)
 }
 
 export type StaffFormFields = {
@@ -123,7 +155,9 @@ export function validateStaffRow(row: StaffFormFields, label: string): string | 
   if (!isValidAadhaar(row.aadhar_number)) {
     return `${label}: Aadhar is required — enter exactly 12 digits.`
   }
-  if (!row.card_number.trim()) return `${label}: card number is required.`
+  if (!row.card_number.trim()) {
+    return `${label}: card number is required — enter the number or choose Pending.`
+  }
   if (!isValidMobile(row.mobile)) {
     return `${label}: mobile is required — enter a valid 10-digit Indian number (starts with 6–9).`
   }

@@ -106,10 +106,6 @@ export function PublicVehicleForm({
               </select>
             </div>
             <div className="field">
-              <label>RC number</label>
-              <input value={row.rc_number} onChange={(e) => updateRow(row.key, { rc_number: e.target.value })} />
-            </div>
-            <div className="field">
               <label>PUC ID</label>
               <input value={row.puc_id} onChange={(e) => updateRow(row.key, { puc_id: e.target.value })} />
             </div>
@@ -180,7 +176,6 @@ export function vehicleRowsToPayload(rows: VehicleRow[]) {
       make_model: r.make_model.trim() || null,
       colour: r.colour.trim() || null,
       linked_to: r.linked_to === 'tenant' ? 'tenant' : 'owner',
-      rc_number: r.rc_number.trim() || null,
       puc_id: r.puc_id.trim() || null,
       puc_validity: r.puc_validity || null,
       parking_slot: r.parking_slot.trim() || null,

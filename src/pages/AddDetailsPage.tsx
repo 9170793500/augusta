@@ -33,9 +33,14 @@ import {
   type PublicSubmission,
 } from '../lib/publicSubmission'
 import {
-  sanitizeAadhaar,
-  sanitizeMobile,
-  validateDriverForm,
+  PublicDriverForm,
+  blankDriverRow,
+  driverRowsToPayload,
+  type DriverRow,
+} from '../components/PublicDriverForm'
+import {
+  validateDriverRow,
+  driverRowHasPartialData,
   validateLeaseForm,
   validateResidentForm,
   validateStaffRow,
@@ -92,6 +97,20 @@ function detailsToStaffRow(details: Record<string, unknown>): StaffRow {
   }
 }
 
+function detailsToDriverRow(details: Record<string, unknown>): DriverRow {
+  return {
+    ...blankDriverRow(),
+    vehicle_no: strDetail(details, 'vehicle_no'),
+    driver_name: strDetail(details, 'driver_name'),
+    mobile: strDetail(details, 'mobile'),
+    licence_number: strDetail(details, 'licence_number'),
+    licence_valid_from: strDetail(details, 'licence_valid_from'),
+    licence_validity: strDetail(details, 'licence_validity'),
+    aadhar_number: strDetail(details, 'aadhar_number'),
+    address: strDetail(details, 'address'),
+    notes: strDetail(details, 'notes'),
+  }
+}
 function detailsToVehicleRow(details: Record<string, unknown>): VehicleRow {
   return {
     ...blankVehicleRow(),
@@ -132,17 +151,7 @@ export function AddDetailsPage() {
     document_url: '',
   })
   const [maidRows, setMaidRows] = useState<StaffRow[]>([blankStaffRow('full_time'), blankStaffRow('part_time')])
-  const [driverForm, setDriverForm] = useState({
-    vehicle_no: '',
-    driver_name: '',
-    mobile: '',
-    licence_number: '',
-    licence_valid_from: '',
-    licence_validity: '',
-    aadhar_number: '',
-    address: '',
-    notes: '',
-  })
+  const [driverRows, setDriverRows] = useState<DriverRow[]>(() => [blankDriverRow()])
   const [vehicleRows, setVehicleRows] = useState<VehicleRow[]>(() => [blankVehicleRow(vehicleLinkedTo(loadPublicContact().livingAs))])
 
   const visibleTabs = tabsForLivingAs(contact.livingAs)
@@ -238,17 +247,7 @@ export function AddDetailsPage() {
       document_url: '',
     })
     setMaidRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
-    setDriverForm({
-      vehicle_no: '',
-      driver_name: '',
-      mobile: '',
-      licence_number: '',
-      licence_valid_from: '',
-      licence_validity: '',
-      aadhar_number: '',
-      address: '',
-      notes: '',
-    })
+    setDriverRows([blankDriverRow()])
     setVehicleRows([blankVehicleRow(vehicleLinkedTo(contact.livingAs))])
   }
 
@@ -306,17 +305,7 @@ export function AddDetailsPage() {
     } else if (row.category === 'maid') {
       setMaidRows([detailsToStaffRow(d)])
     } else if (row.category === 'driver') {
-      setDriverForm({
-        vehicle_no: strDetail(d, 'vehicle_no'),
-        driver_name: strDetail(d, 'driver_name'),
-        mobile: strDetail(d, 'mobile'),
-        licence_number: strDetail(d, 'licence_number'),
-        licence_valid_from: strDetail(d, 'licence_valid_from'),
-        licence_validity: strDetail(d, 'licence_validity'),
-        aadhar_number: strDetail(d, 'aadhar_number'),
-        address: strDetail(d, 'address'),
-        notes: strDetail(d, 'notes'),
-      })
+      setDriverRows([detailsToDriverRow(d)])
     } else if (row.category === 'vehicle') {
       setVehicleRows([detailsToVehicleRow(d)])
     }
@@ -349,8 +338,6 @@ export function AddDetailsPage() {
         return validateResidentForm(tenantForm, 'Tenant')
       case 'lease':
         return validateLeaseForm(leaseForm, tenantForm.full_name || contact.submitterName)
-      case 'driver':
-        return validateDriverForm(driverForm)
       default:
         return null
     }
@@ -514,6 +501,64 @@ export function AddDetailsPage() {
         await afterSuccessfulSubmit(
           'vehicle',
           `${filled.length} vehicle record(s) saved! Continue with ${nextLabel}.`,
+          true
+        )
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submit failed.')
+    }
+    setSaving(false)
+  }
+
+  async function handleDriverBatchSubmit(e: FormEvent, rows: DriverRow[], resetRows: () => void) {
+    e.preventDefault()
+    setError(null)
+    setOk(null)
+    clearDuplicateNotice()
+
+    const contactErr = validateContact()
+    if (contactErr) {
+      setError(contactErr)
+      return
+    }
+
+    const filled = driverRowsToPayload(rows)
+    if (filled.length === 0) {
+      setError('Fill at least one driver with Name, Mobile, Aadhar and Licence number. Remove empty rows if not needed.')
+      return
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      if (!driverRowHasPartialData(row)) continue
+      const err = validateDriverRow(row, `Driver ${i + 1}`)
+      if (err) {
+        setError(err)
+        return
+      }
+    }
+
+    const apt = normalizeApartmentInput(contact.apartmentNo)
+    if (blockIfDuplicate('driver', apt)) return
+
+    const normalizedContact = { ...contact, apartmentNo: apt }
+    savePublicContact(normalizedContact)
+    setContact(normalizedContact)
+
+    setSaving(true)
+    try {
+      if (editing && editing.category === 'driver') {
+        await updatePublicDetail(editing.id, 'driver', filled[0], normalizedContact)
+        resetRows()
+        await afterSuccessfulSubmit('driver', `${categoryLabel('driver')} updated successfully.`, false)
+      } else {
+        await submitPublicDetailBatch('driver', filled, normalizedContact)
+        resetRows()
+        const next = nextTabAfterSubmit('driver', normalizedContact.livingAs)
+        const nextLabel = next === 'view' ? 'My Submissions' : categoryLabel(next)
+        await afterSuccessfulSubmit(
+          'driver',
+          `${filled.length} driver record(s) saved! Continue with ${nextLabel}.`,
           true
         )
       }
@@ -731,72 +776,18 @@ export function AddDetailsPage() {
         )}
 
         {tab === 'driver' && (
-          <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'driver', driverForm)}>
-            <h3>{editing?.category === 'driver' ? 'Edit driver details' : 'Driver details'}</h3>
-            <p className="form-hint">Saved to Drivers table (same as admin dashboard).</p>
-            <div className="form-grid">
-              <div className="field">
-                <FormFieldLabel required>Driver name</FormFieldLabel>
-                <input required value={driverForm.driver_name} onChange={(e) => setDriverForm({ ...driverForm, driver_name: e.target.value })} />
-              </div>
-              <div className="field">
-                <FormFieldLabel>Vehicle no</FormFieldLabel>
-                <input value={driverForm.vehicle_no} onChange={(e) => setDriverForm({ ...driverForm, vehicle_no: e.target.value.toUpperCase() })} placeholder="Optional" />
-              </div>
-              <div className="field">
-                <FormFieldLabel required>Mobile</FormFieldLabel>
-                <input
-                  required
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={driverForm.mobile}
-                  onChange={(e) => setDriverForm({ ...driverForm, mobile: sanitizeMobile(e.target.value) })}
-                  placeholder="10-digit mobile"
-                />
-              </div>
-              <div className="field">
-                <FormFieldLabel required>Licence number</FormFieldLabel>
-                <input required value={driverForm.licence_number} onChange={(e) => setDriverForm({ ...driverForm, licence_number: e.target.value.toUpperCase() })} />
-              </div>
-              <div className="field">
-                <FormFieldLabel>Licence start date</FormFieldLabel>
-                <input type="date" value={driverForm.licence_valid_from} onChange={(e) => setDriverForm({ ...driverForm, licence_valid_from: e.target.value })} />
-              </div>
-              <div className="field">
-                <FormFieldLabel required>Licence expiry date</FormFieldLabel>
-                <input type="date" required value={driverForm.licence_validity} onChange={(e) => setDriverForm({ ...driverForm, licence_validity: e.target.value })} />
-              </div>
-              <div className="field">
-                <FormFieldLabel required>Aadhar</FormFieldLabel>
-                <input
-                  required
-                  inputMode="numeric"
-                  maxLength={12}
-                  value={driverForm.aadhar_number}
-                  onChange={(e) => setDriverForm({ ...driverForm, aadhar_number: sanitizeAadhaar(e.target.value) })}
-                  placeholder="12-digit Aadhar"
-                />
-              </div>
-              <div className="field full">
-                <FormFieldLabel>Address</FormFieldLabel>
-                <input value={driverForm.address} onChange={(e) => setDriverForm({ ...driverForm, address: e.target.value })} placeholder="Optional" />
-              </div>
-              <div className="field full">
-                <FormFieldLabel>Notes</FormFieldLabel>
-                <input value={driverForm.notes} onChange={(e) => setDriverForm({ ...driverForm, notes: e.target.value })} placeholder="Optional" />
-              </div>
-            </div>
-            <div className="form-actions-row">
-              {editing?.category === 'driver' && (
-                <button type="button" className="btn btn-ghost" onClick={() => { clearEditing(); setTab('view') }}>Cancel edit</button>
-              )}
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving
-                  ? editing?.category === 'driver' ? 'Updating…' : 'Submitting…'
-                  : editing?.category === 'driver' ? 'Update driver' : 'Submit driver details'}
-              </button>
-            </div>
-          </form>
+          <PublicDriverForm
+            title={editing?.category === 'driver' ? 'Edit driver details' : 'Driver details'}
+            hint="Add all drivers for this flat — same as admin form. Saved to the Drivers table."
+            rows={driverRows}
+            onRowsChange={setDriverRows}
+            saving={saving}
+            editing={editing?.category === 'driver'}
+            onCancelEdit={() => { clearEditing(); setTab('view') }}
+            onSubmit={(e, rows) =>
+              handleDriverBatchSubmit(e, rows, () => setDriverRows([blankDriverRow()]))
+            }
+          />
         )}
 
         {tab === 'vehicle' && (

@@ -398,6 +398,16 @@ a:hover {
   font-weight: 700;
 }
 
+.pending-or-number-field .form-hint,
+.pending-field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+}
+
+.pending-or-number-field select + input {
+  margin-top: 0.5rem;
+}
+
 .field input:required:invalid:not(:placeholder-shown),
 .field select:required:invalid,
 .field textarea:required:invalid:not(:placeholder-shown) {
