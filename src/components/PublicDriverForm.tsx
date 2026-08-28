@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { FormFieldLabel } from './FormFieldLabel'
 import { PendingOrNumberField } from './PendingOrNumberField'
+import { FlexibleDateField } from './FlexibleDateField'
 import { isPendingValue, sanitizeAadhaar, sanitizeMobile } from '../lib/fieldValidation'
 
 export type DriverRow = {
@@ -126,23 +127,18 @@ export function PublicDriverForm({
               />
               {!licencePending && (
                 <>
-                  <div className="field">
-                    <FormFieldLabel>Licence start date</FormFieldLabel>
-                    <input
-                      type="date"
-                      value={row.licence_valid_from}
-                      onChange={(e) => updateRow(row.key, { licence_valid_from: e.target.value })}
-                    />
-                  </div>
-                  <div className="field">
-                    <FormFieldLabel required>Licence expiry date</FormFieldLabel>
-                    <input
-                      type="date"
-                      required
-                      value={row.licence_validity}
-                      onChange={(e) => updateRow(row.key, { licence_validity: e.target.value })}
-                    />
-                  </div>
+                  <FlexibleDateField
+                    label="Licence start date"
+                    value={row.licence_valid_from}
+                    onChange={(licence_valid_from) => updateRow(row.key, { licence_valid_from })}
+                    maxYear={new Date().getFullYear()}
+                  />
+                  <FlexibleDateField
+                    label="Licence expiry date"
+                    value={row.licence_validity}
+                    onChange={(licence_validity) => updateRow(row.key, { licence_validity })}
+                    required
+                  />
                 </>
               )}
               <div className="field">

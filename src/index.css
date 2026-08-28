@@ -411,6 +411,27 @@ a:hover {
   margin-top: 0.15rem;
 }
 
+.flexible-date-field {
+  margin-bottom: 1rem;
+}
+
+.flexible-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1fr;
+  gap: 0.5rem;
+}
+
+.flexible-date-row select {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .flexible-date-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .field input:required:invalid:not(:placeholder-shown),
 .field select:required:invalid,
 .field textarea:required:invalid:not(:placeholder-shown) {

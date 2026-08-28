@@ -1,8 +1,9 @@
 import type { FormEvent } from 'react'
 import type { EmploymentType, StaffGender } from '../lib/types'
 import { FormFieldLabel } from './FormFieldLabel'
-import { sanitizeAadhaar, sanitizeMobile, isPendingValue } from '../lib/fieldValidation'
 import { PendingOrNumberField } from './PendingOrNumberField'
+import { FlexibleDateField } from './FlexibleDateField'
+import { sanitizeAadhaar, sanitizeMobile, isPendingValue } from '../lib/fieldValidation'
 
 export type StaffRow = {
   key: string
@@ -181,22 +182,17 @@ export function PublicStaffForm({
             </div>
             {!cardPending && (
               <>
-                <div className="field">
-                  <label>Card start date</label>
-                  <input
-                    type="date"
-                    value={row.card_valid_from}
-                    onChange={(e) => updateRow(row.key, { card_valid_from: e.target.value })}
-                  />
-                </div>
-                <div className="field">
-                  <label>Card expiry date</label>
-                  <input
-                    type="date"
-                    value={row.employment_valid_till}
-                    onChange={(e) => updateRow(row.key, { employment_valid_till: e.target.value })}
-                  />
-                </div>
+                <FlexibleDateField
+                  label="Card start date"
+                  value={row.card_valid_from}
+                  onChange={(card_valid_from) => updateRow(row.key, { card_valid_from })}
+                  maxYear={new Date().getFullYear()}
+                />
+                <FlexibleDateField
+                  label="Card expiry date"
+                  value={row.employment_valid_till}
+                  onChange={(employment_valid_till) => updateRow(row.key, { employment_valid_till })}
+                />
               </>
             )}
             <div className="field full">
