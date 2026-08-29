@@ -78,6 +78,8 @@ export function ResidentPanel({
       email: row.resident.email || '',
       mobile: row.resident.mobile || '',
       alt_mobile: row.resident.alt_mobile || '',
+      spouse_name: row.resident.spouse_name || '',
+      spouse_mobile: row.resident.spouse_mobile || '',
       occupancy_role: row.occupancy_role,
       is_current: row.is_current,
     })
@@ -189,6 +191,8 @@ export function ResidentPanel({
           <div className="field"><label>Email</label><input type="email" disabled={readOnly} value={person.email} onChange={(e) => setPerson({ ...person, email: e.target.value })} /></div>
           <div className="field"><label>Mobile</label><input disabled={readOnly} value={person.mobile} onChange={(e) => setPerson({ ...person, mobile: e.target.value })} /></div>
           <div className="field"><label>Alt. Mobile</label><input disabled={readOnly} value={person.alt_mobile} onChange={(e) => setPerson({ ...person, alt_mobile: e.target.value })} /></div>
+          <div className="field"><label>Spouse Name</label><input disabled={readOnly} value={person.spouse_name} onChange={(e) => setPerson({ ...person, spouse_name: e.target.value })} /></div>
+          <div className="field"><label>Spouse Mobile</label><input disabled={readOnly} value={person.spouse_mobile} onChange={(e) => setPerson({ ...person, spouse_mobile: e.target.value })} /></div>
         </div>
       </div>
 

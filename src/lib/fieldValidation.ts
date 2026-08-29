@@ -61,8 +61,11 @@ export function isValidPan(value: string): boolean {
 export type ResidentFormFields = {
   full_name: string
   father_name: string
+  guardian_type: 'father' | 'husband'
   mobile: string
   alt_mobile: string
+  spouse_name: string
+  spouse_mobile: string
   email: string
   aadhar_number: string
   pan_number: string
@@ -76,6 +79,9 @@ export function validateResidentForm(form: ResidentFormFields, roleLabel: string
   }
   if (!isValidOptionalMobile(form.alt_mobile)) {
     return `${roleLabel} alternate mobile must be a valid 10-digit number, or leave it blank.`
+  }
+  if (!isValidOptionalMobile(form.spouse_mobile)) {
+    return `${roleLabel} spouse mobile must be a valid 10-digit number, or leave it blank.`
   }
   if (!isValidEmail(form.email)) {
     return `${roleLabel} email is required — enter a valid address with @ (e.g. name@gmail.com).`

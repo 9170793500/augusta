@@ -14,6 +14,14 @@ import { LeaseFieldsSection } from '../components/LeaseDocumentUpload'
 import { ExistingSubmissionPanel } from '../components/ExistingSubmissionPanel'
 import { normalizeApartmentInput } from '../lib/apartmentUtils'
 import {
+  buildApartmentAutofillData,
+  inferLivingAsFromAutofill,
+  inferLivingAsFromSubmissions,
+  mergeAutofillData,
+  type ApartmentAutofillData,
+} from '../lib/apartmentAutofill'
+import { fetchApartmentDetailsFromDb } from '../lib/fetchApartmentFromDb'
+import {
   categoryLabel,
   defaultTabForLivingAs,
   detailSummary,
@@ -59,17 +67,64 @@ const TAB_LABELS: Record<PublicDetailCategory, string> = {
   vehicle: 'Vehicle',
 }
 
-function emptyResident(role: 'owner' | 'tenant') {
+type ResidentFormState = {
+  full_name: string
+  father_name: string
+  guardian_type: 'father' | 'husband'
+  mobile: string
+  alt_mobile: string
+  spouse_name: string
+  spouse_mobile: string
+  email: string
+  aadhar_number: string
+  pan_number: string
+  family_members: string
+  occupancy_role: 'owner' | 'tenant'
+}
+
+function emptyResident(role: 'owner' | 'tenant'): ResidentFormState {
   return {
     full_name: '',
     father_name: '',
+    guardian_type: 'father',
     mobile: '',
     alt_mobile: '',
+    spouse_name: '',
+    spouse_mobile: '',
     email: '',
     aadhar_number: '',
     pan_number: '',
     family_members: '',
     occupancy_role: role,
+  }
+}
+
+function residentFromDetails(details: Record<string, unknown>, role: 'owner' | 'tenant'): ResidentFormState {
+  const guardianRaw = strDetail(details, 'guardian_type')
+  return {
+    ...emptyResident(role),
+    full_name: strDetail(details, 'full_name'),
+    father_name: strDetail(details, 'father_name'),
+    guardian_type: guardianRaw === 'husband' ? 'husband' : 'father',
+    mobile: strDetail(details, 'mobile'),
+    alt_mobile: strDetail(details, 'alt_mobile'),
+    spouse_name: strDetail(details, 'spouse_name'),
+    spouse_mobile: strDetail(details, 'spouse_mobile'),
+    email: strDetail(details, 'email'),
+    aadhar_number: strDetail(details, 'aadhar_number'),
+    pan_number: strDetail(details, 'pan_number'),
+    family_members: strDetail(details, 'family_members'),
+  }
+}
+
+function leaseFromDetails(details: Record<string, unknown>) {
+  return {
+    tenant_name: strDetail(details, 'tenant_name'),
+    lease_start: strDetail(details, 'lease_start'),
+    lease_end: strDetail(details, 'lease_end'),
+    status: strDetail(details, 'status') || 'active',
+    notes: strDetail(details, 'notes'),
+    document_url: strDetail(details, 'document_url'),
   }
 }
 
@@ -139,6 +194,7 @@ export function AddDetailsPage() {
   const [editing, setEditing] = useState<PublicSubmission | null>(null)
   const [duplicateRecords, setDuplicateRecords] = useState<PublicSubmission[]>([])
   const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null)
+  const [autofillNotice, setAutofillNotice] = useState<string | null>(null)
 
   const [ownerForm, setOwnerForm] = useState(emptyResident('owner'))
   const [tenantForm, setTenantForm] = useState(emptyResident('tenant'))
@@ -156,6 +212,113 @@ export function AddDetailsPage() {
 
   const visibleTabs = tabsForLivingAs(contact.livingAs)
 
+  const resetEmptyForms = useCallback((livingAs: LivingAs) => {
+    setOwnerForm(emptyResident('owner'))
+    setTenantForm(emptyResident('tenant'))
+    setLeaseForm({
+      tenant_name: '',
+      lease_start: '',
+      lease_end: '',
+      status: 'active',
+      notes: '',
+      document_url: '',
+    })
+    setMaidRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
+    setDriverRows([blankDriverRow()])
+    setVehicleRows([blankVehicleRow(vehicleLinkedTo(livingAs))])
+  }, [])
+
+  const loadSavedDataForApartment = useCallback(
+    async (
+      aptRaw: string,
+      livingAs: LivingAs,
+      rows: PublicSubmission[],
+      dbData?: ApartmentAutofillData | null
+    ) => {
+      const apt = normalizeApartmentInput(aptRaw)
+      if (!apt) {
+        setAutofillNotice(null)
+        return
+      }
+
+      setEditing(null)
+      setDuplicateRecords([])
+      setDuplicateMessage(null)
+
+      const db =
+        dbData === undefined ? await fetchApartmentDetailsFromDb(apt) : dbData
+      const data = mergeAutofillData(apt, buildApartmentAutofillData(apt, rows), db)
+      if (!data.message) {
+        resetEmptyForms(livingAs)
+        setAutofillNotice(null)
+        return
+      }
+
+      setOwnerForm(data.owner ? residentFromDetails(data.owner, 'owner') : emptyResident('owner'))
+      setTenantForm(data.tenant ? residentFromDetails(data.tenant, 'tenant') : emptyResident('tenant'))
+      setLeaseForm(data.lease ? leaseFromDetails(data.lease) : {
+        tenant_name: '',
+        lease_start: '',
+        lease_end: '',
+        status: 'active',
+        notes: '',
+        document_url: '',
+      })
+      setMaidRows(
+        data.maids.length > 0
+          ? data.maids.map((details) => detailsToStaffRow(details))
+          : [blankStaffRow('full_time'), blankStaffRow('part_time')]
+      )
+      setDriverRows(
+        data.drivers.length > 0
+          ? data.drivers.map((details) => detailsToDriverRow(details))
+          : [blankDriverRow()]
+      )
+      setVehicleRows(
+        data.vehicles.length > 0
+          ? data.vehicles.map((details) => detailsToVehicleRow(details))
+          : [blankVehicleRow(vehicleLinkedTo(livingAs))]
+      )
+
+      if (data.submitterName) {
+        setContact((prev) => ({ ...prev, submitterName: data.submitterName || prev.submitterName }))
+      }
+
+      setAutofillNotice(data.message)
+      setError(null)
+    },
+    [resetEmptyForms]
+  )
+
+  async function handleApartmentChange(apartmentNo: string) {
+    const apt = normalizeApartmentInput(apartmentNo)
+    const { rows } = await fetchPublicSubmissions()
+    setSubmissions(rows)
+
+    const dbData = apt ? await fetchApartmentDetailsFromDb(apt) : null
+    const localData = apt
+      ? buildApartmentAutofillData(apt, rows)
+      : { maids: [], drivers: [], vehicles: [], message: null }
+    const merged = apt ? mergeAutofillData(apt, localData, dbData) : null
+
+    const nextLivingAs = apt
+      ? inferLivingAsFromSubmissions(
+          rows,
+          apt,
+          inferLivingAsFromAutofill(merged!, contact.livingAs)
+        )
+      : contact.livingAs
+    const nextContact = { ...contact, apartmentNo: apt || apartmentNo, livingAs: nextLivingAs }
+    setContact(nextContact)
+    savePublicContact(nextContact)
+    if (apt) {
+      await loadSavedDataForApartment(apt, nextLivingAs, rows, dbData)
+    } else {
+      resetEmptyForms(contact.livingAs)
+      setAutofillNotice(null)
+    }
+  }
+
   useEffect(() => {
     if (tab !== 'view' && !visibleTabs.includes(tab)) {
       setTab(visibleTabs[0])
@@ -170,7 +333,12 @@ export function AddDetailsPage() {
     setError(null)
     setOk(null)
     setTab(defaultTabForLivingAs(livingAs))
-    setVehicleRows([blankVehicleRow(vehicleLinkedTo(livingAs))])
+    const apt = normalizeApartmentInput(next.apartmentNo)
+    if (apt) {
+      void loadSavedDataForApartment(apt, livingAs, submissions)
+    } else {
+      resetEmptyForms(livingAs)
+    }
   }
 
   const refreshSubmissions = useCallback(async (showLoadError = false) => {
@@ -193,6 +361,12 @@ export function AddDetailsPage() {
       .then(({ rows }) => setSubmissions(rows))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const apt = normalizeApartmentInput(contact.apartmentNo)
+    if (!apt || editing) return
+    void loadSavedDataForApartment(apt, contact.livingAs, submissions)
+  }, [submissions, contact.apartmentNo, contact.livingAs, editing, loadSavedDataForApartment])
 
   useEffect(() => {
     if (tab === 'view') refreshSubmissions(true)
@@ -236,19 +410,7 @@ export function AddDetailsPage() {
   function clearEditing() {
     clearDuplicateNotice()
     setEditing(null)
-    setOwnerForm(emptyResident('owner'))
-    setTenantForm(emptyResident('tenant'))
-    setLeaseForm({
-      tenant_name: '',
-      lease_start: '',
-      lease_end: '',
-      status: 'active',
-      notes: '',
-      document_url: '',
-    })
-    setMaidRows([blankStaffRow('full_time'), blankStaffRow('part_time')])
-    setDriverRows([blankDriverRow()])
-    setVehicleRows([blankVehicleRow(vehicleLinkedTo(contact.livingAs))])
+    resetEmptyForms(contact.livingAs)
   }
 
   function startEdit(row: PublicSubmission) {
@@ -257,7 +419,8 @@ export function AddDetailsPage() {
     setOk(null)
     setEditing(row)
     setContact({
-      apartmentNo: row.apartment_no,
+      apartmentNo:
+        normalizeApartmentInput(row.apartment_no) || row.apartment_no.trim().toUpperCase(),
       submitterName: row.submitter_name || contact.submitterName,
       submitterMobile: row.submitter_mobile || contact.submitterMobile,
       livingAs:
@@ -270,38 +433,11 @@ export function AddDetailsPage() {
 
     const d = row.details
     if (row.category === 'owner') {
-      setOwnerForm({
-        ...emptyResident('owner'),
-        full_name: strDetail(d, 'full_name'),
-        father_name: strDetail(d, 'father_name'),
-        mobile: strDetail(d, 'mobile'),
-        alt_mobile: strDetail(d, 'alt_mobile'),
-        email: strDetail(d, 'email'),
-        aadhar_number: strDetail(d, 'aadhar_number'),
-        pan_number: strDetail(d, 'pan_number'),
-        family_members: strDetail(d, 'family_members'),
-      })
+      setOwnerForm(residentFromDetails(d, 'owner'))
     } else if (row.category === 'tenant') {
-      setTenantForm({
-        ...emptyResident('tenant'),
-        full_name: strDetail(d, 'full_name'),
-        father_name: strDetail(d, 'father_name'),
-        mobile: strDetail(d, 'mobile'),
-        alt_mobile: strDetail(d, 'alt_mobile'),
-        email: strDetail(d, 'email'),
-        aadhar_number: strDetail(d, 'aadhar_number'),
-        pan_number: strDetail(d, 'pan_number'),
-        family_members: strDetail(d, 'family_members'),
-      })
+      setTenantForm(residentFromDetails(d, 'tenant'))
     } else if (row.category === 'lease') {
-      setLeaseForm({
-        tenant_name: strDetail(d, 'tenant_name'),
-        lease_start: strDetail(d, 'lease_start'),
-        lease_end: strDetail(d, 'lease_end'),
-        status: strDetail(d, 'status') || 'active',
-        notes: strDetail(d, 'notes'),
-        document_url: strDetail(d, 'document_url'),
-      })
+      setLeaseForm(leaseFromDetails(d))
     } else if (row.category === 'maid') {
       setMaidRows([detailsToStaffRow(d)])
     } else if (row.category === 'driver') {
@@ -599,6 +735,7 @@ export function AddDetailsPage() {
 
         {error && <div className="alert alert-error">{error}</div>}
         {duplicateMessage && <div className="alert alert-warn">{duplicateMessage}</div>}
+        {autofillNotice && <div className="alert alert-ok">{autofillNotice}</div>}
         {ok && <div className="alert alert-ok">{ok}</div>}
         {duplicateRecords.length > 0 && (
           <ExistingSubmissionPanel rows={duplicateRecords} onEdit={startEdit} />
@@ -622,7 +759,7 @@ export function AddDetailsPage() {
                 apartmentNo={null}
                 lockApartment={false}
                 value={contact.apartmentNo}
-                onChange={(v) => setContact({ ...contact, apartmentNo: v })}
+                onChange={handleApartmentChange}
               />
             </div>
             <div className="field">
@@ -679,6 +816,7 @@ export function AddDetailsPage() {
             onSubmit={(e) =>
               handleSubmit(e, 'owner', {
                 ...ownerForm,
+                guardian_type: ownerForm.guardian_type,
                 is_resident: contact.livingAs === 'owner_resident',
               })
             }
@@ -704,7 +842,7 @@ export function AddDetailsPage() {
         )}
 
         {tab === 'tenant' && (
-          <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'tenant', tenantForm)}>
+          <form className="add-details-form card-section" onSubmit={(e) => handleSubmit(e, 'tenant', { ...tenantForm, guardian_type: tenantForm.guardian_type })}>
             <h3>{editing?.category === 'tenant' ? 'Edit tenant details' : 'Tenant details'}</h3>
             <p className="form-hint">Saved to Resident Directory (same as admin dashboard).</p>
             <ResidentDetailFields

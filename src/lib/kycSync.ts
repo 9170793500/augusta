@@ -94,6 +94,8 @@ type ResidentRow = {
     email?: string | null
     mobile?: string | null
     alt_mobile?: string | null
+    spouse_name?: string | null
+    spouse_mobile?: string | null
   } | null
 }
 
@@ -115,6 +117,8 @@ export async function syncAllResidentsKyc(rows: ResidentRow[]) {
         email: r.email || '',
         mobile: r.mobile || '',
         alt_mobile: r.alt_mobile || '',
+        spouse_name: r.spouse_name || '',
+        spouse_mobile: r.spouse_mobile || '',
         occupancy_role: row.occupancy_role,
         is_current: row.is_current,
       },

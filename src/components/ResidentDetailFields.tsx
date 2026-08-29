@@ -12,6 +12,9 @@ export function ResidentDetailFields({ form, onChange, roleLabel }: Props) {
     onChange({ ...form, ...partial })
   }
 
+  const guardianType = form.guardian_type === 'husband' ? 'husband' : 'father'
+  const guardianLabel = guardianType === 'husband' ? 'Husband name' : 'Father name'
+
   return (
     <div className="form-grid">
       <div className="field full">
@@ -23,13 +26,27 @@ export function ResidentDetailFields({ form, onChange, roleLabel }: Props) {
           placeholder={`${roleLabel} name as on Aadhar`}
         />
       </div>
-      <div className="field full">
-        <FormFieldLabel>Father name</FormFieldLabel>
-        <input
-          value={form.father_name}
-          onChange={(e) => patch({ father_name: e.target.value })}
-          placeholder="Optional"
-        />
+      <div className="field full guardian-name-field">
+        <div className="guardian-name-row">
+          <select
+            className="guardian-type-select"
+            aria-label="Relation"
+            value={guardianType}
+            onChange={(e) =>
+              patch({ guardian_type: e.target.value === 'husband' ? 'husband' : 'father' })
+            }
+          >
+            <option value="father">Father name</option>
+            <option value="husband">Husband name</option>
+          </select>
+          <input
+            className="guardian-name-input"
+            aria-label={guardianLabel}
+            value={form.father_name}
+            onChange={(e) => patch({ father_name: e.target.value })}
+            placeholder={`${guardianLabel} (optional)`}
+          />
+        </div>
       </div>
       <div className="field">
         <FormFieldLabel required>Mobile</FormFieldLabel>
@@ -52,6 +69,25 @@ export function ResidentDetailFields({ form, onChange, roleLabel }: Props) {
           value={form.alt_mobile}
           onChange={(e) => patch({ alt_mobile: sanitizeMobile(e.target.value) })}
           placeholder="Optional"
+        />
+      </div>
+      <div className="field">
+        <FormFieldLabel>Spouse name</FormFieldLabel>
+        <input
+          value={form.spouse_name}
+          onChange={(e) => patch({ spouse_name: e.target.value })}
+          placeholder="Husband / wife name (optional)"
+        />
+      </div>
+      <div className="field">
+        <FormFieldLabel>Spouse mobile</FormFieldLabel>
+        <input
+          inputMode="numeric"
+          autoComplete="tel"
+          maxLength={10}
+          value={form.spouse_mobile}
+          onChange={(e) => patch({ spouse_mobile: sanitizeMobile(e.target.value) })}
+          placeholder="10-digit mobile (optional)"
         />
       </div>
       <div className="field">

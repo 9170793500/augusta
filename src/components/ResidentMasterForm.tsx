@@ -11,6 +11,8 @@ export function ResidentMasterForm({ onSaved, readOnly }: FormProps) {
     email: '',
     mobile: '',
     alt_mobile: '',
+    spouse_name: '',
+    spouse_mobile: '',
     notes: '',
   })
   const [error, setError] = useState<string | null>(null)
@@ -29,11 +31,13 @@ export function ResidentMasterForm({ onSaved, readOnly }: FormProps) {
       email: form.email.trim() || null,
       mobile: form.mobile.trim() || null,
       alt_mobile: form.alt_mobile.trim() || null,
+      spouse_name: form.spouse_name.trim() || null,
+      spouse_mobile: form.spouse_mobile.trim() || null,
       notes: form.notes.trim() || null,
     } as never)
     if (err) return setError(err.message)
     setOk('Resident saved.')
-    setForm({ full_name: '', father_name: '', aadhar_number: '', pan_number: '', email: '', mobile: '', alt_mobile: '', notes: '' })
+    setForm({ full_name: '', father_name: '', aadhar_number: '', pan_number: '', email: '', mobile: '', alt_mobile: '', spouse_name: '', spouse_mobile: '', notes: '' })
     onSaved()
   }
 
@@ -51,6 +55,8 @@ export function ResidentMasterForm({ onSaved, readOnly }: FormProps) {
         <div className="field"><label>Email</label><input type="email" disabled={readOnly} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label>Mobile Number</label><input disabled={readOnly} value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} /></div>
         <div className="field"><label>Alternative Mobile</label><input disabled={readOnly} value={form.alt_mobile} onChange={(e) => setForm({ ...form, alt_mobile: e.target.value })} /></div>
+        <div className="field"><label>Spouse Name</label><input disabled={readOnly} value={form.spouse_name} onChange={(e) => setForm({ ...form, spouse_name: e.target.value })} /></div>
+        <div className="field"><label>Spouse Mobile</label><input disabled={readOnly} value={form.spouse_mobile} onChange={(e) => setForm({ ...form, spouse_mobile: e.target.value })} /></div>
         <div className="field full"><label>Notes</label><input disabled={readOnly} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
       </div>
       {!readOnly && <button className="btn btn-primary">Save resident</button>}

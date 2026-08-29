@@ -65,6 +65,8 @@ export function OwnerPanel({
           email: ownerRow.resident.email || '',
           mobile: ownerRow.resident.mobile || '',
           alt_mobile: ownerRow.resident.alt_mobile || '',
+          spouse_name: ownerRow.resident.spouse_name || '',
+          spouse_mobile: ownerRow.resident.spouse_mobile || '',
           occupancy_role: 'owner',
           is_current: ownerRow.is_current,
         })
@@ -151,6 +153,8 @@ export function OwnerPanel({
           <div className="field"><label>Email</label><input type="email" disabled={readOnly} value={owner.email} onChange={(e) => setOwner({ ...owner, email: e.target.value })} /></div>
           <div className="field"><label>Mobile</label><input disabled={readOnly} value={owner.mobile} onChange={(e) => setOwner({ ...owner, mobile: e.target.value })} /></div>
           <div className="field"><label>Alt. Mobile</label><input disabled={readOnly} value={owner.alt_mobile} onChange={(e) => setOwner({ ...owner, alt_mobile: e.target.value })} /></div>
+          <div className="field"><label>Spouse Name</label><input disabled={readOnly} value={owner.spouse_name} onChange={(e) => setOwner({ ...owner, spouse_name: e.target.value })} /></div>
+          <div className="field"><label>Spouse Mobile</label><input disabled={readOnly} value={owner.spouse_mobile} onChange={(e) => setOwner({ ...owner, spouse_mobile: e.target.value })} /></div>
         </div>
       </div>
 

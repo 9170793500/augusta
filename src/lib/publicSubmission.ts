@@ -1,3 +1,4 @@
+import { normalizeApartmentInput } from './apartmentUtils'
 import { supabase } from './supabase'
 import { submitPublicDetailDirect } from './publicSubmitDirect'
 
@@ -73,8 +74,9 @@ export function loadPublicContact(): PublicContact {
     const raw = localStorage.getItem(CONTACT_KEY)
     if (!raw) return { apartmentNo: '', submitterName: '', submitterMobile: '', livingAs: 'owner_resident' }
     const parsed = JSON.parse(raw) as Partial<PublicContact>
+    const apartmentRaw = parsed.apartmentNo || ''
     return {
-      apartmentNo: parsed.apartmentNo || '',
+      apartmentNo: normalizeApartmentInput(apartmentRaw) || apartmentRaw.trim().toUpperCase(),
       submitterName: parsed.submitterName || '',
       submitterMobile: parsed.submitterMobile || '',
       livingAs: normalizeLivingAs(parsed.livingAs),
@@ -92,7 +94,11 @@ function loadLocalCache(): PublicSubmission[] {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as PublicSubmission[]
+    return (JSON.parse(raw) as PublicSubmission[]).map((row) => ({
+      ...row,
+      apartment_no:
+        normalizeApartmentInput(row.apartment_no) || row.apartment_no.trim().toUpperCase(),
+    }))
   } catch {
     return []
   }
@@ -116,7 +122,7 @@ export function cacheSubmissionLocally(
   const entry: PublicSubmission = {
     id: id || crypto.randomUUID(),
     submission_token: token,
-    apartment_no: contact.apartmentNo.trim().toUpperCase(),
+    apartment_no: normalizeApartmentInput(contact.apartmentNo) || contact.apartmentNo.trim().toUpperCase(),
     submitter_mobile: contact.submitterMobile.trim(),
     submitter_name: contact.submitterName.trim() || null,
     category,
@@ -166,7 +172,7 @@ export async function submitPublicDetail(
 
   const { data, error } = await supabase.rpc('submit_public_detail', {
     p_token: token,
-    p_apartment_no: contact.apartmentNo.trim().toUpperCase(),
+    p_apartment_no: normalizeApartmentInput(contact.apartmentNo) || contact.apartmentNo.trim().toUpperCase(),
     p_submitter_mobile: (contact.submitterMobile || (details.mobile as string) || '').toString().trim() || 'public',
     p_submitter_name: contact.submitterName.trim() || null,
     p_category: category,
@@ -212,7 +218,7 @@ export async function updatePublicDetail(
   const { data, error } = await supabase.rpc('update_public_detail', {
     p_record_id: recordId,
     p_category: category,
-    p_apartment_no: contact.apartmentNo.trim().toUpperCase(),
+    p_apartment_no: normalizeApartmentInput(contact.apartmentNo) || contact.apartmentNo.trim().toUpperCase(),
     p_details: details,
   })
 
@@ -230,7 +236,7 @@ export async function updatePublicDetail(
     row.id === recordId
       ? {
           ...row,
-          apartment_no: contact.apartmentNo.trim().toUpperCase(),
+          apartment_no: normalizeApartmentInput(contact.apartmentNo) || contact.apartmentNo.trim().toUpperCase(),
           submitter_mobile: contact.submitterMobile.trim(),
           submitter_name: contact.submitterName.trim() || null,
           details,
@@ -298,7 +304,10 @@ export function detailSummary(details: Record<string, unknown>): string {
 
 const DETAIL_FIELD_LABELS: Record<string, string> = {
   full_name: 'Full name',
-  father_name: 'Father name',
+  father_name: 'Father / husband name',
+  guardian_type: 'Relation',
+  spouse_name: 'Spouse name',
+  spouse_mobile: 'Spouse mobile',
   tenant_name: 'Tenant name',
   name: 'Name',
   driver_name: 'Driver name',
@@ -344,9 +353,13 @@ export function existingSubmissionsForCategory(
   apartmentNo: string,
   category: PublicDetailCategory
 ): PublicSubmission[] {
-  const apt = apartmentNo.trim().toUpperCase()
+  const apt = normalizeApartmentInput(apartmentNo)
   if (!apt) return []
   return submissions
-    .filter((row) => row.apartment_no === apt && row.category === category)
+    .filter(
+      (row) =>
+        (normalizeApartmentInput(row.apartment_no) || row.apartment_no.trim().toUpperCase()) ===
+          apt && row.category === category
+    )
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 }

@@ -46,6 +46,13 @@ export function normalizeApartmentInput(full: string): string {
   return buildApartmentNo(upper)
 }
 
+/** Compare stored vs selected apartment codes after normalizing legacy formats. */
+export function apartmentsMatch(stored: string, selected: string): boolean {
+  const a = normalizeApartmentInput(stored)
+  const b = normalizeApartmentInput(selected)
+  return a !== '' && b !== '' && a === b
+}
+
 export const SOCIETY_TOWERS = ['3', '4', '5'] as const
 
 /** Tower digit from code — AUG030505 → 3. */

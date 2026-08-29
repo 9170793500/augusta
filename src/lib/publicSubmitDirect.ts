@@ -64,6 +64,8 @@ export async function submitPublicDetailDirect(
           email: str(details.email) || null,
           mobile: str(details.mobile) || null,
           alt_mobile: str(details.alt_mobile) || null,
+          spouse_name: str(details.spouse_name) || null,
+          spouse_mobile: str(details.spouse_mobile) || null,
         } as never)
         .select('id')
         .single()
@@ -110,6 +112,8 @@ export async function submitPublicDetailDirect(
           email: str(details.email) || null,
           mobile: str(details.mobile) || null,
           alt_mobile: str(details.alt_mobile) || null,
+          spouse_name: str(details.spouse_name) || null,
+          spouse_mobile: str(details.spouse_mobile) || null,
         } as never)
         .select('id')
         .single()

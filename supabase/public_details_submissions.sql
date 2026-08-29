@@ -40,6 +40,8 @@ create policy "lease_documents_update"
 
 alter table public.maids add column if not exists card_valid_from date;
 alter table public.drivers add column if not exists licence_valid_from date;
+alter table public.resident_master add column if not exists spouse_name text;
+alter table public.resident_master add column if not exists spouse_mobile text;
 
 create or replace function public.is_admin()
 returns boolean
@@ -123,7 +125,8 @@ begin
       end if;
 
       insert into public.resident_master (
-        full_name, father_name, aadhar_number, pan_number, email, mobile, alt_mobile
+        full_name, father_name, aadhar_number, pan_number, email, mobile, alt_mobile,
+        spouse_name, spouse_mobile
       )
       values (
         trim(p_details->>'full_name'),
@@ -132,7 +135,9 @@ begin
         nullif(upper(trim(p_details->>'pan_number')), ''),
         nullif(trim(p_details->>'email'), ''),
         nullif(trim(p_details->>'mobile'), ''),
-        nullif(trim(p_details->>'alt_mobile'), '')
+        nullif(trim(p_details->>'alt_mobile'), ''),
+        nullif(trim(p_details->>'spouse_name'), ''),
+        nullif(trim(p_details->>'spouse_mobile'), '')
       )
       returning id into v_resident_id;
 
@@ -161,7 +166,8 @@ begin
       end if;
 
       insert into public.resident_master (
-        full_name, father_name, aadhar_number, pan_number, email, mobile, alt_mobile
+        full_name, father_name, aadhar_number, pan_number, email, mobile, alt_mobile,
+        spouse_name, spouse_mobile
       )
       values (
         trim(p_details->>'full_name'),
@@ -170,7 +176,9 @@ begin
         nullif(upper(trim(p_details->>'pan_number')), ''),
         nullif(trim(p_details->>'email'), ''),
         nullif(trim(p_details->>'mobile'), ''),
-        nullif(trim(p_details->>'alt_mobile'), '')
+        nullif(trim(p_details->>'alt_mobile'), ''),
+        nullif(trim(p_details->>'spouse_name'), ''),
+        nullif(trim(p_details->>'spouse_mobile'), '')
       )
       returning id into v_resident_id;
 
@@ -381,7 +389,9 @@ begin
           pan_number = nullif(upper(trim(p_details->>'pan_number')), ''),
           email = nullif(trim(p_details->>'email'), ''),
           mobile = nullif(trim(p_details->>'mobile'), ''),
-          alt_mobile = nullif(trim(p_details->>'alt_mobile'), '')
+          alt_mobile = nullif(trim(p_details->>'alt_mobile'), ''),
+          spouse_name = nullif(trim(p_details->>'spouse_name'), ''),
+          spouse_mobile = nullif(trim(p_details->>'spouse_mobile'), '')
         where id = v_resident_id;
 
         update public.flat_residents set is_current = true where id = p_record_id;
@@ -417,7 +427,9 @@ begin
         pan_number = nullif(upper(trim(p_details->>'pan_number')), ''),
         email = nullif(trim(p_details->>'email'), ''),
         mobile = nullif(trim(p_details->>'mobile'), ''),
-        alt_mobile = nullif(trim(p_details->>'alt_mobile'), '')
+        alt_mobile = nullif(trim(p_details->>'alt_mobile'), ''),
+        spouse_name = nullif(trim(p_details->>'spouse_name'), ''),
+        spouse_mobile = nullif(trim(p_details->>'spouse_mobile'), '')
       where id = v_resident_id;
 
       if coalesce(trim(p_details->>'family_members'), '') <> '' then
@@ -544,6 +556,182 @@ $$;
 
 revoke all on function public.update_public_detail(uuid, text, text, jsonb) from public;
 grant execute on function public.update_public_detail(uuid, text, text, jsonb) to anon, authenticated;
+
+-- ========== FETCH apartment details for public Add Details autofill ==========
+drop function if exists public.fetch_apartment_details(text);
+
+create or replace function public.fetch_apartment_details(p_apartment_no text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_apt text := upper(trim(coalesce(p_apartment_no, '')));
+  v_owner jsonb;
+  v_tenant jsonb;
+  v_lease jsonb;
+  v_maids jsonb := '[]'::jsonb;
+  v_drivers jsonb := '[]'::jsonb;
+  v_vehicles jsonb := '[]'::jsonb;
+  v_family_members text;
+  v_is_resident boolean;
+begin
+  if v_apt = '' then return '{}'::jsonb; end if;
+
+  select f.family_members::text, (coalesce(f.occupancy_status, 'owner_occupied') = 'owner_occupied')
+  into v_family_members, v_is_resident
+  from public.flats f
+  where f.apartment_no = v_apt;
+
+  select jsonb_build_object(
+    'full_name', rm.full_name,
+    'father_name', rm.father_name,
+    'mobile', rm.mobile,
+    'alt_mobile', rm.alt_mobile,
+    'spouse_name', rm.spouse_name,
+    'spouse_mobile', rm.spouse_mobile,
+    'email', rm.email,
+    'aadhar_number', rm.aadhar_number,
+    'pan_number', rm.pan_number,
+    'family_members', v_family_members,
+    'is_resident', v_is_resident,
+    'record_id', fr.id
+  )
+  into v_owner
+  from public.flat_residents fr
+  join public.resident_master rm on rm.id = fr.resident_id
+  where fr.apartment_no = v_apt and fr.occupancy_role = 'owner'
+  order by fr.created_at desc
+  limit 1;
+
+  if v_owner is null then
+    select jsonb_build_object(
+      'full_name', f.owner_name,
+      'mobile', f.owner_phone,
+      'email', f.owner_email,
+      'aadhar_number', f.owner_aadhar,
+      'family_members', f.family_members::text,
+      'is_resident', (coalesce(f.occupancy_status, 'owner_occupied') = 'owner_occupied')
+    )
+    into v_owner
+    from public.flats f
+    where f.apartment_no = v_apt
+      and coalesce(trim(f.owner_name), '') <> '';
+  end if;
+
+  select jsonb_build_object(
+    'full_name', rm.full_name,
+    'father_name', rm.father_name,
+    'mobile', rm.mobile,
+    'alt_mobile', rm.alt_mobile,
+    'spouse_name', rm.spouse_name,
+    'spouse_mobile', rm.spouse_mobile,
+    'email', rm.email,
+    'aadhar_number', rm.aadhar_number,
+    'pan_number', rm.pan_number,
+    'family_members', v_family_members,
+    'record_id', fr.id
+  )
+  into v_tenant
+  from public.flat_residents fr
+  join public.resident_master rm on rm.id = fr.resident_id
+  where fr.apartment_no = v_apt and fr.occupancy_role = 'tenant'
+  order by fr.created_at desc
+  limit 1;
+
+  select jsonb_build_object(
+    'tenant_name', l.tenant_name,
+    'lease_start', l.lease_start::text,
+    'lease_end', l.lease_end::text,
+    'status', l.status::text,
+    'notes', l.notes,
+    'document_url', l.document_url,
+    'record_id', l.id
+  )
+  into v_lease
+  from public.leases l
+  where l.apartment_no = v_apt
+  order by l.created_at desc
+  limit 1;
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'name', m.name,
+      'age', m.age::text,
+      'gender', m.gender::text,
+      'employment_type', m.employment_type::text,
+      'aadhar_number', m.aadhar_number,
+      'mobile', m.mobile,
+      'card_number', m.card_number,
+      'card_valid_from', m.card_valid_from::text,
+      'employment_valid_till', m.employment_valid_till::text,
+      'notes', m.notes,
+      'record_id', m.id
+    ) order by m.created_at
+  ), '[]'::jsonb)
+  into v_maids
+  from public.maids m
+  where m.apartment_no = v_apt;
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'vehicle_no', d.vehicle_no,
+      'driver_name', d.driver_name,
+      'mobile', d.mobile,
+      'licence_number', d.licence_number,
+      'licence_valid_from', d.licence_valid_from::text,
+      'licence_validity', d.licence_validity::text,
+      'aadhar_number', d.aadhar_number,
+      'address', d.address,
+      'notes', d.notes,
+      'record_id', d.id
+    ) order by d.created_at
+  ), '[]'::jsonb)
+  into v_drivers
+  from public.drivers d
+  where d.apartment_no = v_apt;
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'vehicle_no', v.vehicle_no,
+      'make_model', v.make_model,
+      'colour', v.colour,
+      'linked_to', v.linked_to::text,
+      'puc_id', v.puc_id,
+      'puc_validity', v.puc_validity::text,
+      'parking_slot', v.parking_slot,
+      'driver_name', v.driver_name,
+      'driver_licence', v.driver_licence,
+      'record_id', v.id
+    ) order by v.created_at
+  ), '[]'::jsonb)
+  into v_vehicles
+  from public.vehicles v
+  where v.apartment_no = v_apt;
+
+  return jsonb_strip_nulls(jsonb_build_object(
+    'owner', case
+      when v_owner is not null and coalesce(trim(v_owner->>'full_name'), '') <> '' then v_owner
+      else null
+    end,
+    'tenant', case
+      when v_tenant is not null and coalesce(trim(v_tenant->>'full_name'), '') <> '' then v_tenant
+      else null
+    end,
+    'lease', case
+      when v_lease is not null and coalesce(trim(v_lease->>'tenant_name'), '') <> '' then v_lease
+      else null
+    end,
+    'maids', v_maids,
+    'drivers', v_drivers,
+    'vehicles', v_vehicles
+  ));
+end;
+$$;
+
+revoke all on function public.fetch_apartment_details(text) from public;
+grant execute on function public.fetch_apartment_details(text) to anon, authenticated;
 
 -- Society flats: 12 per tower (3, 4, 5)
 delete from public.flats

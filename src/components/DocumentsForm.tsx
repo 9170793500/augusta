@@ -110,6 +110,8 @@ function KycViewModal({
                   <DetailItem label="Email" value={r.email} />
                   <DetailItem label="Mobile" value={r.mobile} />
                   <DetailItem label="Alt. mobile" value={r.alt_mobile} />
+                  <DetailItem label="Spouse name" value={r.spouse_name} />
+                  <DetailItem label="Spouse mobile" value={r.spouse_mobile} />
                   <DetailItem label="Currently living" value={person?.is_current ? 'Yes' : 'No'} />
                 </div>
               ) : (

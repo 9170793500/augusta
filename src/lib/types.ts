@@ -47,6 +47,8 @@ export type ResidentMaster = {
   email: string | null
   mobile: string | null
   alt_mobile: string | null
+  spouse_name: string | null
+  spouse_mobile: string | null
   notes: string | null
   created_at: string
 }

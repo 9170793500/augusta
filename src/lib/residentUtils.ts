@@ -41,6 +41,8 @@ export function mergeLegacyFlatsResidents(
           email: flat.owner_email,
           mobile: flat.owner_phone,
           alt_mobile: null,
+          spouse_name: null,
+          spouse_mobile: null,
           notes: null,
           created_at: flat.created_at,
         },
@@ -70,6 +72,8 @@ export function mergeLegacyFlatsResidents(
           email: flat.tenant_email,
           mobile: flat.tenant_phone,
           alt_mobile: null,
+          spouse_name: null,
+          spouse_mobile: null,
           notes: null,
           created_at: flat.created_at,
         },
@@ -138,6 +142,8 @@ export type PersonFields = {
   email: string
   mobile: string
   alt_mobile: string
+  spouse_name: string
+  spouse_mobile: string
   occupancy_role: OccupancyRole
   is_current: boolean
 }
@@ -151,6 +157,8 @@ export function emptyPerson(role: OccupancyRole = 'tenant'): PersonFields {
     email: '',
     mobile: '',
     alt_mobile: '',
+    spouse_name: '',
+    spouse_mobile: '',
     occupancy_role: role,
     is_current: true,
   }
@@ -171,6 +179,8 @@ export function personFromOwner(
     email: r?.email || '',
     mobile: r?.mobile || '',
     alt_mobile: r?.alt_mobile || '',
+    spouse_name: r?.spouse_name || '',
+    spouse_mobile: r?.spouse_mobile || '',
     occupancy_role: 'owner',
     is_current,
   }
@@ -245,6 +255,8 @@ export async function savePersonToFlat(apartment_no: string, person: PersonField
     email: person.email.trim() || null,
     mobile: person.mobile.trim() || null,
     alt_mobile: person.alt_mobile.trim() || null,
+    spouse_name: person.spouse_name.trim() || null,
+    spouse_mobile: person.spouse_mobile.trim() || null,
   }
 
   if (residentId) {

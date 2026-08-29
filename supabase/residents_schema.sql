@@ -19,6 +19,8 @@ create table if not exists public.resident_master (
   email text,
   mobile text,
   alt_mobile text,
+  spouse_name text,
+  spouse_mobile text,
   notes text,
   created_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
