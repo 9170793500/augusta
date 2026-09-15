@@ -153,46 +153,52 @@ export function PublicVehicleForm({
                 </option>
               </select>
               <p className="field-hint">
-                Whose name is on the RC — use Spouse for wife/husband&apos;s second car.
+                RC registered name — choose Spouse for wife/husband&apos;s second car.
               </p>
             </div>
-            <div className="field full vehicle-driver-row">
-              <label className="checkbox-label">
+            <div className="field full vehicle-driver-section">
+              <p className="vehicle-section-label">Who drives this vehicle?</p>
+              <label className="vehicle-toggle-row">
                 <input
                   type="checkbox"
                   checked={row.hired_driver}
                   onChange={(e) => handleHiredDriverToggle(row.key, row, e.target.checked)}
                 />
-                Hired driver (chauffeur) — not owner/spouse
+                <span className="vehicle-toggle-copy">
+                  <strong>Hired chauffeur</strong>
+                  <span className="field-hint">
+                    Tick only if someone other than the owner or spouse drives this car.
+                  </span>
+                </span>
               </label>
-            </div>
-            <div className="field">
-              <label>{row.hired_driver ? 'Chauffeur name' : 'Driven by (name)'}</label>
-              <input
-                value={row.driver_name}
-                onChange={(e) => updateRow(row.key, { driver_name: e.target.value })}
-                placeholder={
-                  row.hired_driver
-                    ? 'Driver from Driver tab or enter name'
-                    : 'Usually same as registered person'
-                }
-              />
-            </div>
-            <div className="field">
-              <label>{row.hired_driver ? 'Chauffeur licence' : 'Driver licence'}</label>
-              <input
-                value={row.driver_licence}
-                onChange={(e) => updateRow(row.key, { driver_licence: e.target.value })}
-                placeholder={row.hired_driver ? 'Optional' : 'Owner/spouse licence if self-drive'}
-              />
-            </div>
-            {row.hired_driver && (
-              <div className="field full">
-                <p className="field-hint">
+              <div className="vehicle-driver-fields">
+                <div className="field">
+                  <label>{row.hired_driver ? 'Chauffeur name' : 'Driven by (name)'}</label>
+                  <input
+                    value={row.driver_name}
+                    onChange={(e) => updateRow(row.key, { driver_name: e.target.value })}
+                    placeholder={
+                      row.hired_driver
+                        ? 'Name from Driver tab or enter here'
+                        : 'Usually same as registered person'
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label>{row.hired_driver ? 'Chauffeur licence' : 'Driver licence'}</label>
+                  <input
+                    value={row.driver_licence}
+                    onChange={(e) => updateRow(row.key, { driver_licence: e.target.value })}
+                    placeholder={row.hired_driver ? 'Optional' : 'If self-drive'}
+                  />
+                </div>
+              </div>
+              {row.hired_driver && (
+                <p className="field-hint vehicle-driver-tab-hint">
                   Add full chauffeur details (Aadhar, licence dates) in the <strong>Driver</strong> tab.
                 </p>
-              </div>
-            )}
+              )}
+            </div>
             <div className="field">
               <label>PUC ID</label>
               <input value={row.puc_id} onChange={(e) => updateRow(row.key, { puc_id: e.target.value })} />
