@@ -104,6 +104,8 @@ export type Vehicle = {
   make_model: string | null
   colour: string | null
   linked_to: LinkedTo | null
+  registered_to: string | null
+  registered_to_name: string | null
   driver_name: string | null
   driver_licence: string | null
   driver_licence_validity: string | null

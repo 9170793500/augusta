@@ -199,6 +199,8 @@ export async function submitPublicDetailDirect(
         make_model: str(details.make_model) || null,
         colour: str(details.colour) || null,
         linked_to: str(details.linked_to) === 'tenant' ? 'tenant' : 'owner',
+        registered_to: str(details.registered_to) === 'spouse' ? 'spouse' : 'owner',
+        registered_to_name: str(details.registered_to_name) || null,
         rc_number: str(details.rc_number) || null,
         puc_id: str(details.puc_id) || null,
         puc_validity: str(details.puc_validity) || null,

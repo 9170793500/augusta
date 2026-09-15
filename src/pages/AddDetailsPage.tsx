@@ -167,19 +167,30 @@ function detailsToDriverRow(details: Record<string, unknown>): DriverRow {
   }
 }
 function detailsToVehicleRow(details: Record<string, unknown>): VehicleRow {
+  const registeredTo = details.registered_to === 'spouse' ? 'spouse' : 'owner'
+  const driverName = strDetail(details, 'driver_name')
   return {
     ...blankVehicleRow(),
     vehicle_no: strDetail(details, 'vehicle_no'),
     make_model: strDetail(details, 'make_model'),
     colour: strDetail(details, 'colour'),
     linked_to: strDetail(details, 'linked_to') || 'owner',
+    registered_to: registeredTo,
     rc_number: strDetail(details, 'rc_number'),
     puc_id: strDetail(details, 'puc_id'),
     puc_validity: strDetail(details, 'puc_validity'),
     parking_slot: strDetail(details, 'parking_slot'),
-    driver_name: strDetail(details, 'driver_name'),
+    driver_name: driverName,
     driver_licence: strDetail(details, 'driver_licence'),
+    hired_driver: false,
   }
+}
+
+function residentNamesForVehicle(contactLivingAs: LivingAs, ownerForm: ResidentFormState, tenantForm: ResidentFormState) {
+  if (contactLivingAs === 'tenant_resident') {
+    return { primaryResidentName: tenantForm.full_name, spouseName: tenantForm.spouse_name }
+  }
+  return { primaryResidentName: ownerForm.full_name, spouseName: ownerForm.spouse_name }
 }
 
 export function AddDetailsPage() {
@@ -211,6 +222,7 @@ export function AddDetailsPage() {
   const [vehicleRows, setVehicleRows] = useState<VehicleRow[]>(() => [blankVehicleRow(vehicleLinkedTo(loadPublicContact().livingAs))])
 
   const visibleTabs = tabsForLivingAs(contact.livingAs)
+  const vehicleResidentNames = residentNamesForVehicle(contact.livingAs, ownerForm, tenantForm)
 
   const resetEmptyForms = useCallback((livingAs: LivingAs) => {
     setOwnerForm(emptyResident('owner'))
@@ -600,7 +612,11 @@ export function AddDetailsPage() {
       return
     }
 
-    const filled = vehicleRowsToPayload(rows)
+    const filled = vehicleRowsToPayload(
+      rows,
+      vehicleResidentNames.primaryResidentName,
+      vehicleResidentNames.spouseName
+    )
     if (filled.length === 0) {
       setError('Fill at least one vehicle with Vehicle No. Remove empty rows if not needed.')
       return
@@ -931,8 +947,10 @@ export function AddDetailsPage() {
         {tab === 'vehicle' && (
           <PublicVehicleForm
             title={editing?.category === 'vehicle' ? 'Edit vehicle details' : 'Vehicle details'}
-            hint="Add all vehicles registered for this flat. Saved to the Vehicles table."
+            hint="Add all vehicles for this flat. Choose whose name the RC is in (owner or spouse). Self-drive: leave chauffeur unchecked."
             rows={vehicleRows}
+            primaryResidentName={vehicleResidentNames.primaryResidentName}
+            spouseName={vehicleResidentNames.spouseName}
             onRowsChange={setVehicleRows}
             saving={saving}
             editing={editing?.category === 'vehicle'}

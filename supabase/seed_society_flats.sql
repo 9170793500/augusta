@@ -39,18 +39,18 @@ values
   ('AUG040507', '4', '5', 'vacant', 'vacant'),
   ('AUG040508', '4', '5', 'vacant', 'vacant'),
 
-  ('AUG050008', '5', '0', 'vacant', 'vacant'),
   ('AUG050009', '5', '0', 'vacant', 'vacant'),
-  ('AUG050108', '5', '1', 'vacant', 'vacant'),
+  ('AUG050010', '5', '0', 'vacant', 'vacant'),
   ('AUG050109', '5', '1', 'vacant', 'vacant'),
-  ('AUG050208', '5', '2', 'vacant', 'vacant'),
+  ('AUG050110', '5', '1', 'vacant', 'vacant'),
   ('AUG050209', '5', '2', 'vacant', 'vacant'),
-  ('AUG050308', '5', '3', 'vacant', 'vacant'),
+  ('AUG050210', '5', '2', 'vacant', 'vacant'),
   ('AUG050309', '5', '3', 'vacant', 'vacant'),
-  ('AUG050408', '5', '4', 'vacant', 'vacant'),
+  ('AUG050310', '5', '3', 'vacant', 'vacant'),
   ('AUG050409', '5', '4', 'vacant', 'vacant'),
-  ('AUG050508', '5', '5', 'vacant', 'vacant'),
-  ('AUG050509', '5', '5', 'vacant', 'vacant')
+  ('AUG050410', '5', '4', 'vacant', 'vacant'),
+  ('AUG050509', '5', '5', 'vacant', 'vacant'),
+  ('AUG050510', '5', '5', 'vacant', 'vacant')
 on conflict (apartment_no) do update set
   tower = excluded.tower,
   floor = excluded.floor;

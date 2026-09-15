@@ -1,43 +1,16 @@
--- Public Add Details -> writes into REAL society tables (security definer = no 401)
--- Run ALL of this in Supabase -> SQL Editor -> Run
--- Includes storage bucket for lease document uploads
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'lease-documents',
-  'lease-documents',
-  true,
-  10485760,
-  array[
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword'
-  ]
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
-drop policy if exists "lease_documents_public_read" on storage.objects;
-create policy "lease_documents_public_read"
-  on storage.objects for select
-  using (bucket_id = 'lease-documents');
-
-drop policy if exists "lease_documents_upload" on storage.objects;
-create policy "lease_documents_upload"
-  on storage.objects for insert
-  with check (bucket_id = 'lease-documents');
-
-drop policy if exists "lease_documents_update" on storage.objects;
-create policy "lease_documents_update"
-  on storage.objects for update
-  using (bucket_id = 'lease-documents')
-  with check (bucket_id = 'lease-documents');
-
+﻿-- ============================================================
+-- AUGUSTA — RUN THIS NOW in Supabase SQL Editor
+-- Date: 2026-08-29
+--
+-- Enables:
+--   • Spouse name/mobile on owner & tenant
+--   • Vehicle registered_to (owner vs spouse RC)
+--   • DB autofill when flat is selected (fetch_apartment_details)
+--   • Public form submit + edit (submit/update_public_detail)
+--
+-- Safe to re-run (uses IF NOT EXISTS + CREATE OR REPLACE).
+-- Does NOT re-seed flats or storage bucket.
+-- ============================================================
 alter table public.maids add column if not exists card_valid_from date;
 alter table public.drivers add column if not exists licence_valid_from date;
 alter table public.resident_master add column if not exists spouse_name text;
@@ -742,57 +715,5 @@ $$;
 revoke all on function public.fetch_apartment_details(text) from public;
 grant execute on function public.fetch_apartment_details(text) to anon, authenticated;
 
--- Society flats: 12 per tower (3, 4, 5)
-delete from public.flats
-where apartment_no in (
-  'AUG0030005', 'AUG0030006', 'AUG0030105', 'AUG0030106', 'AUG0030205', 'AUG0030206',
-  'AUG0030305', 'AUG0030306', 'AUG0030405', 'AUG0030406', 'AUG0030505', 'AUG0030506',
-  'AUG0040007', 'AUG0040008', 'AUG0040107', 'AUG0040108', 'AUG0040207', 'AUG0040208',
-  'AUG0040307', 'AUG0040308', 'AUG0040407', 'AUG0040408', 'AUG0040507', 'AUG0040508',
-  'AUG0050008', 'AUG0050009', 'AUG0050108', 'AUG0050109', 'AUG0050208', 'AUG0050209',
-  'AUG0050308', 'AUG0050309', 'AUG0050408', 'AUG0050409', 'AUG0050508', 'AUG0050509'
-);
-
-insert into public.flats (apartment_no, tower, floor, status, occupancy_status)
-values
-  ('AUG030005', '3', '0', 'vacant', 'vacant'),
-  ('AUG030006', '3', '0', 'vacant', 'vacant'),
-  ('AUG030105', '3', '1', 'vacant', 'vacant'),
-  ('AUG030106', '3', '1', 'vacant', 'vacant'),
-  ('AUG030205', '3', '2', 'vacant', 'vacant'),
-  ('AUG030206', '3', '2', 'vacant', 'vacant'),
-  ('AUG030305', '3', '3', 'vacant', 'vacant'),
-  ('AUG030306', '3', '3', 'vacant', 'vacant'),
-  ('AUG030405', '3', '4', 'vacant', 'vacant'),
-  ('AUG030406', '3', '4', 'vacant', 'vacant'),
-  ('AUG030505', '3', '5', 'vacant', 'vacant'),
-  ('AUG030506', '3', '5', 'vacant', 'vacant'),
-  ('AUG040007', '4', '0', 'vacant', 'vacant'),
-  ('AUG040008', '4', '0', 'vacant', 'vacant'),
-  ('AUG040107', '4', '1', 'vacant', 'vacant'),
-  ('AUG040108', '4', '1', 'vacant', 'vacant'),
-  ('AUG040207', '4', '2', 'vacant', 'vacant'),
-  ('AUG040208', '4', '2', 'vacant', 'vacant'),
-  ('AUG040307', '4', '3', 'vacant', 'vacant'),
-  ('AUG040308', '4', '3', 'vacant', 'vacant'),
-  ('AUG040407', '4', '4', 'vacant', 'vacant'),
-  ('AUG040408', '4', '4', 'vacant', 'vacant'),
-  ('AUG040507', '4', '5', 'vacant', 'vacant'),
-  ('AUG040508', '4', '5', 'vacant', 'vacant'),
-  ('AUG050009', '5', '0', 'vacant', 'vacant'),
-  ('AUG050010', '5', '0', 'vacant', 'vacant'),
-  ('AUG050109', '5', '1', 'vacant', 'vacant'),
-  ('AUG050110', '5', '1', 'vacant', 'vacant'),
-  ('AUG050209', '5', '2', 'vacant', 'vacant'),
-  ('AUG050210', '5', '2', 'vacant', 'vacant'),
-  ('AUG050309', '5', '3', 'vacant', 'vacant'),
-  ('AUG050310', '5', '3', 'vacant', 'vacant'),
-  ('AUG050409', '5', '4', 'vacant', 'vacant'),
-  ('AUG050410', '5', '4', 'vacant', 'vacant'),
-  ('AUG050509', '5', '5', 'vacant', 'vacant'),
-  ('AUG050510', '5', '5', 'vacant', 'vacant')
-on conflict (apartment_no) do update set
-  tower = excluded.tower,
-  floor = excluded.floor;
-
 notify pgrst, 'reload schema';
+

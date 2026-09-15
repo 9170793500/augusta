@@ -30,9 +30,9 @@ export type PublicSubmission = {
   created_at: string
 }
 
-const OWNER_RESIDENT_TABS: PublicDetailCategory[] = ['owner', 'maid', 'driver', 'vehicle']
+const OWNER_RESIDENT_TABS: PublicDetailCategory[] = ['owner', 'maid', 'vehicle', 'driver']
 const OWNER_NON_RESIDENT_TABS: PublicDetailCategory[] = ['owner', 'vehicle']
-const TENANT_RESIDENT_TABS: PublicDetailCategory[] = ['tenant', 'lease', 'maid', 'driver', 'vehicle']
+const TENANT_RESIDENT_TABS: PublicDetailCategory[] = ['tenant', 'lease', 'maid', 'vehicle', 'driver']
 
 export function normalizeLivingAs(raw: unknown): LivingAs {
   if (raw === 'tenant' || raw === 'tenant_resident') return 'tenant_resident'
@@ -324,6 +324,8 @@ const DETAIL_FIELD_LABELS: Record<string, string> = {
   vehicle_no: 'Vehicle no',
   make_model: 'Make / model',
   colour: 'Colour',
+  registered_to: 'Registered to',
+  registered_to_name: 'Registered in name of',
   licence_number: 'Licence number',
   licence_valid_from: 'Licence valid from',
   licence_validity: 'Licence valid till',

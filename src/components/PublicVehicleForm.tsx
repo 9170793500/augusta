@@ -1,5 +1,11 @@
 import type { FormEvent } from 'react'
 import { FormFieldLabel } from './FormFieldLabel'
+import {
+  defaultDriverNameForRegistration,
+  normalizeVehicleRegisteredTo,
+  registeredToLabel,
+  type VehicleRegisteredTo,
+} from '../lib/vehicleRegistration'
 
 export type VehicleRow = {
   key: string
@@ -7,12 +13,14 @@ export type VehicleRow = {
   make_model: string
   colour: string
   linked_to: string
+  registered_to: VehicleRegisteredTo
   rc_number: string
   puc_id: string
   puc_validity: string
   parking_slot: string
   driver_name: string
   driver_licence: string
+  hired_driver: boolean
 }
 
 export function blankVehicleRow(linkedTo = 'owner'): VehicleRow {
@@ -22,12 +30,14 @@ export function blankVehicleRow(linkedTo = 'owner'): VehicleRow {
     make_model: '',
     colour: '',
     linked_to: linkedTo,
+    registered_to: 'owner',
     rc_number: '',
     puc_id: '',
     puc_validity: '',
     parking_slot: '',
     driver_name: '',
     driver_licence: '',
+    hired_driver: false,
   }
 }
 
@@ -35,6 +45,8 @@ type Props = {
   title: string
   hint: string
   rows: VehicleRow[]
+  primaryResidentName: string
+  spouseName: string
   onRowsChange: (rows: VehicleRow[]) => void
   onSubmit: (e: FormEvent, payload: VehicleRow[]) => void
   saving: boolean
@@ -46,6 +58,8 @@ export function PublicVehicleForm({
   title,
   hint,
   rows,
+  primaryResidentName,
+  spouseName,
   onRowsChange,
   onSubmit,
   saving,
@@ -54,6 +68,25 @@ export function PublicVehicleForm({
 }: Props) {
   function updateRow(key: string, patch: Partial<VehicleRow>) {
     onRowsChange(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
+  }
+
+  function handleRegisteredToChange(key: string, row: VehicleRow, registeredTo: VehicleRegisteredTo) {
+    const patch: Partial<VehicleRow> = { registered_to: registeredTo, hired_driver: false }
+    if (!row.hired_driver) {
+      patch.driver_name = defaultDriverNameForRegistration(registeredTo, primaryResidentName, spouseName)
+    }
+    updateRow(key, patch)
+  }
+
+  function handleHiredDriverToggle(key: string, row: VehicleRow, hired: boolean) {
+    if (hired) {
+      updateRow(key, { hired_driver: true, driver_name: '' })
+      return
+    }
+    updateRow(key, {
+      hired_driver: false,
+      driver_name: defaultDriverNameForRegistration(row.registered_to, primaryResidentName, spouseName),
+    })
   }
 
   function handleSubmit(e: FormEvent) {
@@ -99,12 +132,67 @@ export function PublicVehicleForm({
               <input value={row.colour} onChange={(e) => updateRow(row.key, { colour: e.target.value })} />
             </div>
             <div className="field">
-              <label>Linked to</label>
+              <label>Household</label>
               <select value={row.linked_to} onChange={(e) => updateRow(row.key, { linked_to: e.target.value })}>
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
             </div>
+            <div className="field full">
+              <FormFieldLabel>Registered in name of</FormFieldLabel>
+              <select
+                value={row.registered_to}
+                onChange={(e) =>
+                  handleRegisteredToChange(row.key, row, normalizeVehicleRegisteredTo(e.target.value))
+                }
+              >
+                <option value="owner">{registeredToLabel('owner', primaryResidentName, spouseName)}</option>
+                <option value="spouse" disabled={!spouseName.trim()}>
+                  {registeredToLabel('spouse', primaryResidentName, spouseName)}
+                  {!spouseName.trim() ? ' (add spouse name in Owner/Tenant tab)' : ''}
+                </option>
+              </select>
+              <p className="field-hint">
+                Whose name is on the RC — use Spouse for wife/husband&apos;s second car.
+              </p>
+            </div>
+            <div className="field full vehicle-driver-row">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={row.hired_driver}
+                  onChange={(e) => handleHiredDriverToggle(row.key, row, e.target.checked)}
+                />
+                Hired driver (chauffeur) — not owner/spouse
+              </label>
+            </div>
+            <div className="field">
+              <label>{row.hired_driver ? 'Chauffeur name' : 'Driven by (name)'}</label>
+              <input
+                value={row.driver_name}
+                onChange={(e) => updateRow(row.key, { driver_name: e.target.value })}
+                placeholder={
+                  row.hired_driver
+                    ? 'Driver from Driver tab or enter name'
+                    : 'Usually same as registered person'
+                }
+              />
+            </div>
+            <div className="field">
+              <label>{row.hired_driver ? 'Chauffeur licence' : 'Driver licence'}</label>
+              <input
+                value={row.driver_licence}
+                onChange={(e) => updateRow(row.key, { driver_licence: e.target.value })}
+                placeholder={row.hired_driver ? 'Optional' : 'Owner/spouse licence if self-drive'}
+              />
+            </div>
+            {row.hired_driver && (
+              <div className="field full">
+                <p className="field-hint">
+                  Add full chauffeur details (Aadhar, licence dates) in the <strong>Driver</strong> tab.
+                </p>
+              </div>
+            )}
             <div className="field">
               <label>PUC ID</label>
               <input value={row.puc_id} onChange={(e) => updateRow(row.key, { puc_id: e.target.value })} />
@@ -120,17 +208,6 @@ export function PublicVehicleForm({
             <div className="field">
               <label>Parking slot</label>
               <input value={row.parking_slot} onChange={(e) => updateRow(row.key, { parking_slot: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Driver name</label>
-              <input value={row.driver_name} onChange={(e) => updateRow(row.key, { driver_name: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Driver licence</label>
-              <input
-                value={row.driver_licence}
-                onChange={(e) => updateRow(row.key, { driver_licence: e.target.value })}
-              />
             </div>
           </div>
         </div>
@@ -168,18 +245,30 @@ export function PublicVehicleForm({
   )
 }
 
-export function vehicleRowsToPayload(rows: VehicleRow[]) {
+export function vehicleRowsToPayload(
+  rows: VehicleRow[],
+  primaryResidentName: string,
+  spouseName: string
+) {
   return rows
     .filter((r) => r.vehicle_no.trim())
-    .map((r) => ({
-      vehicle_no: r.vehicle_no.trim().toUpperCase(),
-      make_model: r.make_model.trim() || null,
-      colour: r.colour.trim() || null,
-      linked_to: r.linked_to === 'tenant' ? 'tenant' : 'owner',
-      puc_id: r.puc_id.trim() || null,
-      puc_validity: r.puc_validity || null,
-      parking_slot: r.parking_slot.trim() || null,
-      driver_name: r.driver_name.trim() || null,
-      driver_licence: r.driver_licence.trim() || null,
-    }))
+    .map((r) => {
+      const registered_to = normalizeVehicleRegisteredTo(r.registered_to)
+      const registered_to_name =
+        registered_to === 'spouse' ? spouseName.trim() : primaryResidentName.trim()
+      const defaultDriver = defaultDriverNameForRegistration(registered_to, primaryResidentName, spouseName)
+      return {
+        vehicle_no: r.vehicle_no.trim().toUpperCase(),
+        make_model: r.make_model.trim() || null,
+        colour: r.colour.trim() || null,
+        linked_to: r.linked_to === 'tenant' ? 'tenant' : 'owner',
+        registered_to,
+        registered_to_name: registered_to_name || null,
+        puc_id: r.puc_id.trim() || null,
+        puc_validity: r.puc_validity || null,
+        parking_slot: r.parking_slot.trim() || null,
+        driver_name: (r.driver_name.trim() || defaultDriver) || null,
+        driver_licence: r.driver_licence.trim() || null,
+      }
+    })
 }

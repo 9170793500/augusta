@@ -4,12 +4,16 @@ import type { FormProps, LinkedTo, Vehicle } from '../lib/types'
 import { normalizeApartmentInput } from '../lib/apartmentUtils'
 import { ApartmentField } from './ApartmentField'
 
+import { normalizeVehicleRegisteredTo, type VehicleRegisteredTo } from '../lib/vehicleRegistration'
+
 type Row = {
   key: string
   vehicle_no: string
   make_model: string
   colour: string
   linked_to: LinkedTo
+  registered_to: VehicleRegisteredTo
+  registered_to_name: string
   driver_name: string
   driver_licence: string
   driver_licence_validity: string
@@ -27,6 +31,8 @@ function blankRow(linkedTo: LinkedTo = 'owner'): Row {
     make_model: '',
     colour: '',
     linked_to: linkedTo,
+    registered_to: 'owner',
+    registered_to_name: '',
     driver_name: '',
     driver_licence: '',
     driver_licence_validity: '',
@@ -65,6 +71,8 @@ export function VehicleForm({ onSaved, apartmentNo, lockApartment, readOnly }: F
         make_model: r.make_model.trim() || null,
         colour: r.colour.trim() || null,
         linked_to: r.linked_to,
+        registered_to: r.registered_to,
+        registered_to_name: r.registered_to_name.trim() || null,
         driver_name: r.driver_name.trim() || null,
         driver_licence: r.driver_licence.trim() || null,
         driver_licence_validity: r.driver_licence_validity || null,
@@ -145,6 +153,28 @@ export function VehicleForm({ onSaved, apartmentNo, lockApartment, readOnly }: F
               </select>
             </div>
             <div className="field">
+              <label>Registered to</label>
+              <select
+                disabled={readOnly}
+                value={row.registered_to}
+                onChange={(e) =>
+                  updateRow(row.key, { registered_to: normalizeVehicleRegisteredTo(e.target.value) })
+                }
+              >
+                <option value="owner">Owner (primary)</option>
+                <option value="spouse">Spouse</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Registered name (RC)</label>
+              <input
+                disabled={readOnly}
+                value={row.registered_to_name}
+                onChange={(e) => updateRow(row.key, { registered_to_name: e.target.value })}
+                placeholder="Name on registration certificate"
+              />
+            </div>
+            <div className="field">
               <label>RC Number</label>
               <input disabled={readOnly} value={row.rc_number} onChange={(e) => updateRow(row.key, { rc_number: e.target.value })} />
             </div>
@@ -166,7 +196,7 @@ export function VehicleForm({ onSaved, apartmentNo, lockApartment, readOnly }: F
               <input disabled={readOnly} value={row.parking_slot} onChange={(e) => updateRow(row.key, { parking_slot: e.target.value })} />
             </div>
             <div className="field">
-              <label>Driver Name</label>
+              <label>Driven by</label>
               <input disabled={readOnly} value={row.driver_name} onChange={(e) => updateRow(row.key, { driver_name: e.target.value })} />
             </div>
             <div className="field">
@@ -205,9 +235,9 @@ export function VehicleForm({ onSaved, apartmentNo, lockApartment, readOnly }: F
 export function VehicleTable({ rows, onDelete, readOnly }: { rows: Vehicle[]; onDelete: (id: string) => void; readOnly?: boolean }) {
   return (
     <div className="table-wrap"><table>
-      <thead><tr><th>Apartment</th><th>Vehicle</th><th>Model</th><th>Linked</th><th>PUC Till</th>{!readOnly && <th>Actions</th>}</tr></thead>
+      <thead><tr><th>Apartment</th><th>Vehicle</th><th>Model</th><th>Registered to</th><th>PUC Till</th>{!readOnly && <th>Actions</th>}</tr></thead>
       <tbody>{rows.length === 0 ? <tr><td colSpan={6} className="empty">No vehicles.</td></tr> : rows.map((r) => (
-        <tr key={r.id}><td>{r.apartment_no}</td><td>{r.vehicle_no}</td><td>{r.make_model || '—'}</td><td>{r.linked_to}</td><td>{r.puc_validity || '—'}</td>
+        <tr key={r.id}><td>{r.apartment_no}</td><td>{r.vehicle_no}</td><td>{r.make_model || '—'}</td><td>{r.registered_to_name || r.registered_to || '—'}</td><td>{r.puc_validity || '—'}</td>
           {!readOnly && <td><button type="button" className="btn btn-danger" onClick={() => onDelete(r.id)}>Delete</button></td>}</tr>
       ))}</tbody>
     </table></div>
