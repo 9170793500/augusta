@@ -1,0 +1,31 @@
+{
+  "period_label": "2026-2027",
+  "annual_amount": 35000,
+  "contracts": [
+    { "apartment_code": "AUG030005", "tower": 3, "flat_no": "5", "start_date": "2026-10-01", "legacy_id": "Tower3-5-2026" },
+    { "apartment_code": "AUG030006", "tower": 3, "flat_no": "6" },
+    { "apartment_code": "AUG030105", "tower": 3, "flat_no": "105" },
+    { "apartment_code": "AUG030205", "tower": 3, "flat_no": "205" },
+    { "apartment_code": "AUG030305", "tower": 3, "flat_no": "305" },
+    { "apartment_code": "AUG030405", "tower": 3, "flat_no": "405" },
+    { "apartment_code": "AUG040007", "tower": 4, "flat_no": "7" },
+    { "apartment_code": "AUG040008", "tower": 4, "flat_no": "8" },
+    { "apartment_code": "AUG040107", "tower": 4, "flat_no": "107" },
+    { "apartment_code": "AUG040207", "tower": 4, "flat_no": "207" },
+    { "apartment_code": "AUG040307", "tower": 4, "flat_no": "307" },
+    { "apartment_code": "AUG040407", "tower": 4, "flat_no": "407" },
+    { "apartment_code": "AUG050010", "tower": 5, "flat_no": "10" },
+    { "apartment_code": "AUG050110", "tower": 5, "flat_no": "110" },
+    { "apartment_code": "AUG050409", "tower": 5, "flat_no": "409" },
+    { "apartment_code": "AUG050510", "tower": 5, "flat_no": "510" }
+  ],
+  "payments": [
+    {
+      "apartment_code": "AUG030005",
+      "payment_date": "2026-10-01",
+      "amount": 3000,
+      "mode": "Cheque",
+      "received_by": "AOA Office"
+    }
+  ]
+}

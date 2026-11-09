@@ -3601,3 +3601,114 @@ tr.row-selected td {
   margin-top: 0.5rem;
 }
 
+/* VRV Servicing */
+.vrv-module .vrv-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: #f5f0e6;
+}
+.vrv-module .vrv-hero h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+.vrv-module .vrv-hero p {
+  margin: 0;
+  opacity: 0.9;
+}
+.vrv-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.vrv-cashflow,
+.vrv-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.vrv-line-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vrv-line-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.vrv-total {
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+}
+.vrv-attn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vrv-attn-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.vrv-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.vrv-badge.badge-ok {
+  background: rgba(34, 120, 70, 0.15);
+  color: #1a6b3c;
+}
+.vrv-badge.badge-warn {
+  background: rgba(180, 120, 20, 0.15);
+  color: #8a5a10;
+}
+.vrv-badge.badge-err {
+  background: rgba(180, 50, 50, 0.12);
+  color: #992222;
+}
+.vrv-badge.badge-muted {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-muted);
+}
+.vrv-progress {
+  height: 6px;
+  background: var(--border);
+  border-radius: 4px;
+  margin-top: 0.35rem;
+  overflow: hidden;
+}
+.vrv-progress span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+.vrv-stat-highlight {
+  border-color: var(--gold, #c9a24a);
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.35);
+}
+.sidebar-nav a.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+@media (max-width: 768px) {
+  .vrv-cashflow,
+  .vrv-split {
+    grid-template-columns: 1fr;
+  }
+}
+

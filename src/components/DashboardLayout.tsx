@@ -195,6 +195,11 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
                 {group.label}
               </button>
             ))}
+          {isAdmin && (
+            <button type="button" className="topnav-item" onClick={() => navigate('/vrv')}>
+              VRV Servicing
+            </button>
+          )}
         </nav>
 
         <div className="dash-topnav-meta">
