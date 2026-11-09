@@ -258,8 +258,9 @@ export function LoginPage() {
               </p>
               {!isSupabaseConfigured && (
                 <div className="alert alert-error">
-                  <strong>Server not configured.</strong> In Cloudflare → Workers → augusta → Settings → Variables, set{' '}
-                  <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> (Worker variables), then redeploy.
+                  <strong>Server not configured.</strong> Cloudflare → Worker <strong>augusta</strong> → Settings →{' '}
+                  <strong>Builds</strong> → Variables: add <code>VITE_SUPABASE_URL</code> and{' '}
+                  <code>VITE_SUPABASE_ANON_KEY</code> (type <strong>Build</strong>), then redeploy.
                 </div>
               )}
               {isSupabaseConfigured && projectRef && import.meta.env.DEV && (
