@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import type {
@@ -102,11 +102,20 @@ type FormMode = 'add' | 'edit' | 'view'
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile, isAdmin, isOwner, isTenant, apartmentNo } = useAuth()
   const [vrvOutstanding, setVrvOutstanding] = useState<number | null>(null)
   const [vrvAlerts, setVrvAlerts] = useState<VrvOverviewAlert[]>([])
   const lockApartment = !isAdmin
-  const [tab, setTab] = useState<TabId>('overview')
+  const [tab, setTab] = useState<TabId>(() => {
+    const st = location.state as { tab?: TabId } | null
+    return st?.tab ?? 'overview'
+  })
+
+  useEffect(() => {
+    const st = location.state as { tab?: TabId } | null
+    if (st?.tab) setTab(st.tab)
+  }, [location.state])
   const [search, setSearch] = useState('')
   const [towerFilter, setTowerFilter] = useState('')
   const [busy, setBusy] = useState(false)

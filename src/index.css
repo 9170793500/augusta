@@ -3605,14 +3605,73 @@ tr.row-selected td {
 .vrv-module .vrv-hero {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
-  border-radius: var(--radius);
-  background: var(--brand);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--fairway-deep) 0%, var(--brand) 100%);
   color: #f5f0e6;
+  border: 1px solid rgba(173, 134, 66, 0.35);
+  box-shadow: var(--shadow);
+}
+.vrv-module .vrv-hero .btn-ghost {
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+}
+.vrv-module .vrv-hero .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.vrv-module .filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.vrv-module .filter-row label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.vrv-module .filter-row select {
+  margin-left: 0.35rem;
+}
+.vrv-module .card-pane {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  box-shadow: var(--shadow);
+}
+.vrv-module .card-pane h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+.vrv-module .stats .stat {
+  min-height: 88px;
+}
+.vrv-module .stats .stat span {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.35rem;
+}
+.vrv-module .stats .stat strong {
+  font-size: 1.45rem;
+  margin-bottom: 0;
+}
+.vrv-module .stat.vrv-stat-highlight {
+  border-color: var(--brass, #c9a24a);
+  background: linear-gradient(180deg, #fff 0%, rgba(201, 162, 74, 0.08) 100%);
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.25);
 }
 .vrv-module .vrv-hero h2 {
   margin: 0 0 0.35rem;
@@ -3700,10 +3759,24 @@ tr.row-selected td {
 .sidebar-nav a.nav-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
   width: 100%;
   text-decoration: none;
-  color: inherit;
+  color: var(--text-muted);
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 0.2rem;
+}
+.sidebar-nav a.nav-item:hover {
+  background: #f1f5f9;
+  color: var(--text);
+}
+.sidebar-nav a.nav-item.active {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-weight: 600;
 }
 @media (max-width: 768px) {
   .vrv-cashflow,

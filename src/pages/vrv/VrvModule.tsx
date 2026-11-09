@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { VrvOverviewPage } from './VrvOverviewPage'
+import VrvOverviewPage from './VrvOverviewPage'
 import { VrvContractsPage } from './VrvContractsPage'
 import { VrvCashbookPage, VrvMaterialsPage, VrvPaymentsPage, VrvSalaryPage } from './VrvLedgerPages'
 

@@ -8,7 +8,7 @@ import { formatInr, formatUiDate } from '../../lib/vrv/format'
 import type { VrvContractComputed, VrvSummary } from '../../lib/vrv/types'
 import { VRV_DEFAULT_PERIOD } from '../../lib/vrv/types'
 
-export function VrvOverviewPage() {
+export default function VrvOverviewPage() {
   const [period] = useState(VRV_DEFAULT_PERIOD)
   const [tower, setTower] = useState<number | 'all'>('all')
   const [summary, setSummary] = useState<VrvSummary | null>(null)
@@ -86,7 +86,7 @@ export function VrvOverviewPage() {
               <span>Outstanding</span>
               <strong>{formatInr(summary.amcOutstanding)}</strong>
             </div>
-            <div className="stat stat-highlight">
+            <div className="stat vrv-stat-highlight">
               <span>Cash balance</span>
               <strong>{formatInr(summary.cashBalance)}</strong>
             </div>

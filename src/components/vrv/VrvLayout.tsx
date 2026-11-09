@@ -1,21 +1,30 @@
-import { type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { AppTopNav } from '../AppTopNav'
 import { useAuth } from '../../lib/auth'
 
 const LINKS = [
-  { to: '/vrv', end: true, label: 'Overview' },
-  { to: '/vrv/contracts', label: 'AMC Contracts' },
-  { to: '/vrv/payments', label: 'Payments' },
-  { to: '/vrv/salary', label: 'Staff Salary' },
-  { to: '/vrv/materials', label: 'Materials' },
-  { to: '/vrv/cashbook', label: 'Cashbook' },
+  { to: '/vrv', end: true, label: 'Overview', icon: '◫' },
+  { to: '/vrv/contracts', label: 'AMC Contracts', icon: '📋' },
+  { to: '/vrv/payments', label: 'Payments', icon: '₹' },
+  { to: '/vrv/salary', label: 'Staff Salary', icon: '👷' },
+  { to: '/vrv/materials', label: 'Materials', icon: '📦' },
+  { to: '/vrv/cashbook', label: 'Cashbook', icon: '◎' },
 ]
 
 type Props = { children: ReactNode; title: string }
 
 export function VrvLayout({ children, title }: Props) {
   const navigate = useNavigate()
-  const { profile, signOut, isAdmin } = useAuth()
+  const { profile, user, signOut, isAdmin } = useAuth()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  useEffect(() => {
+    document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileNavOpen])
 
   if (!isAdmin) {
     return (
@@ -32,44 +41,50 @@ export function VrvLayout({ children, title }: Props) {
 
   return (
     <div className="dash-shell">
-      <header className="dash-topnav">
-        <div className="dash-topnav-brand">
-          <div className="brand-logo-icon">A</div>
-          <div>
-            <strong>Augusta Golf Homes</strong>
-            <span>VRV Servicing</span>
-          </div>
-        </div>
-        <nav className="dash-topnav-menu" aria-label="Main">
-          <button type="button" className="topnav-item" onClick={() => navigate('/dashboard')}>
-            Portal
-          </button>
-          <button type="button" className="topnav-item active">
-            VRV Servicing
-          </button>
-        </nav>
-        <div className="dash-topnav-meta">
-          <span className="role-pill admin">{profile?.role ?? 'admin'}</span>
-        </div>
-      </header>
+      <AppTopNav
+        activeSection="vrv"
+        mobileNavOpen={mobileNavOpen}
+        onMobileMenuToggle={() => setMobileNavOpen((open) => !open)}
+      />
+
+      {mobileNavOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
       <div className="dash-layout">
-        <aside className="sidebar open" style={{ position: 'relative' }}>
+        <aside className={`sidebar${mobileNavOpen ? ' open' : ''}`}>
           <div className="sidebar-section-head">
             <span className="sidebar-section-label">VRV SERVICING</span>
           </div>
           <nav className="sidebar-nav">
-            {LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-              >
-                {link.label}
-              </NavLink>
-            ))}
+            <div className="sidebar-nav-section">
+              {LINKS.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <span className="nav-icon">{link.icon}</span>
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
           </nav>
           <div className="sidebar-footer">
+            <div className="user-card">
+              <div className="user-avatar">{(profile?.full_name || user?.email || 'U')[0].toUpperCase()}</div>
+              <div className="user-info">
+                <strong>{profile?.full_name || 'User'}</strong>
+                <span>Administrator</span>
+              </div>
+            </div>
             <button type="button" className="btn btn-sidebar-out" onClick={() => void handleSignOut()}>
               Sign out
             </button>
@@ -77,7 +92,9 @@ export function VrvLayout({ children, title }: Props) {
         </aside>
         <div className="dash-main">
           <header className="dash-topbar">
-            <h1>{title}</h1>
+            <div className="dash-topbar-left">
+              <h1>{title}</h1>
+            </div>
           </header>
           <div className="dash-content vrv-module">{children}</div>
         </div>
