@@ -258,7 +258,9 @@ export function LoginPage() {
               </p>
               {!isSupabaseConfigured && (
                 <div className="alert alert-error">
-                  <strong>Server not configured.</strong> Set Supabase env variables on Vercel and redeploy.
+                  <strong>Server not configured.</strong> Add{' '}
+                  <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> as{' '}
+                  <strong>Build</strong> variables in Cloudflare (Workers → Settings → Variables), then redeploy.
                 </div>
               )}
               {isSupabaseConfigured && projectRef && import.meta.env.DEV && (

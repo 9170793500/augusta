@@ -9,7 +9,7 @@ export const isSupabaseConfigured = Boolean(
 
 if (!isSupabaseConfigured && import.meta.env.PROD) {
   console.error(
-    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel → Settings → Environment Variables, then redeploy.'
+    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as build environment variables (Cloudflare or Vercel), then redeploy.'
   )
 }
 
