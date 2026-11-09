@@ -6,7 +6,7 @@ import { fetchContractsWithComputed, upsertContract } from '../../lib/vrv/data'
 import { buildApartmentCode } from '../../lib/vrv/compute'
 import { formatInr, formatUiDate } from '../../lib/vrv/format'
 import type { VrvContractComputed } from '../../lib/vrv/types'
-import { VRV_DEFAULT_PERIOD } from '../../lib/vrv/types'
+import { VRV_DEFAULT_ANNUAL_AMOUNT, VRV_DEFAULT_PERIOD } from '../../lib/vrv/types'
 import { supabase } from '../../lib/supabase'
 
 export function VrvContractsPage() {
@@ -21,6 +21,7 @@ export function VrvContractsPage() {
   const [towerIn, setTowerIn] = useState(3)
   const [flatNo, setFlatNo] = useState('')
   const [startDate, setStartDate] = useState('')
+  const [annualAmount, setAnnualAmount] = useState(String(VRV_DEFAULT_ANNUAL_AMOUNT))
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -45,6 +46,11 @@ export function VrvContractsPage() {
   async function onAddFlat(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    const amount = Math.round(Number(annualAmount))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError('Annual amount must be greater than zero.')
+      return
+    }
     const apartment_code = buildApartmentCode(towerIn, flatNo)
     const { data: flat } = await supabase.from('flats').select('owner_name, owner_phone').eq('apartment_no', apartment_code).maybeSingle()
     try {
@@ -53,7 +59,7 @@ export function VrvContractsPage() {
         tower: towerIn,
         flat_no: flatNo.trim(),
         period_label: VRV_DEFAULT_PERIOD,
-        annual_amount: 35000,
+        annual_amount: amount,
         service: 'VRV Service & Repair',
         start_date: startDate || null,
         owner_name: (flat as { owner_name?: string } | null)?.owner_name ?? null,
@@ -61,6 +67,8 @@ export function VrvContractsPage() {
       })
       setAddOpen(false)
       setFlatNo('')
+      setStartDate('')
+      setAnnualAmount(String(VRV_DEFAULT_ANNUAL_AMOUNT))
       setToast(`Added ${apartment_code}`)
       await load()
     } catch (err) {
@@ -71,22 +79,33 @@ export function VrvContractsPage() {
   return (
     <VrvLayout title="AMC Contracts">
       {toast && <div className="alert alert-ok">{toast}</div>}
-      <div className="toolbar-row">
-        <input placeholder="Search flat / owner / mobile" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select value={String(tower)} onChange={(e) => setTower(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-          <option value="all">All towers</option>
-          <option value="3">Tower 3</option>
-          <option value="4">Tower 4</option>
-          <option value="5">Tower 5</option>
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="all">All status</option>
-          <option value="Paid">Paid</option>
-          <option value="Partial">Partial</option>
-          <option value="Pending">Pending</option>
-        </select>
-        <button type="button" className="btn btn-primary" onClick={() => setAddOpen(true)}>
-          + Add Flat
+      <div className="vrv-list-toolbar">
+        <div className="vrv-list-toolbar-left">
+          <input
+            className="vrv-search-input"
+            placeholder="Search flat / owner / mobile"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <select
+            className="vrv-filter-select"
+            value={String(tower)}
+            onChange={(e) => setTower(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          >
+            <option value="all">All towers</option>
+            <option value="3">Tower 3</option>
+            <option value="4">Tower 4</option>
+            <option value="5">Tower 5</option>
+          </select>
+          <select className="vrv-filter-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="all">All status</option>
+            <option value="Paid">Paid</option>
+            <option value="Partial">Partial</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+        <button type="button" className="btn btn-primary btn-sm vrv-toolbar-add" onClick={() => setAddOpen(true)}>
+          + Add flat
         </button>
       </div>
       <div className="table-wrap">
@@ -159,32 +178,45 @@ export function VrvContractsPage() {
         </table>
       </div>
       {addOpen && (
-        <div className="card-pane">
+        <div className="card-pane vrv-add-flat-pane">
           <h3>Add flat to AMC</h3>
           {error && <div className="alert alert-error">{error}</div>}
-          <form onSubmit={onAddFlat} className="form-grid">
-            <div className="field">
-              <label>Tower</label>
-              <select value={towerIn} onChange={(e) => setTowerIn(Number(e.target.value))}>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-                <option value={5}>5</option>
-              </select>
+          <form onSubmit={onAddFlat} className="vrv-add-flat-form">
+            <div className="form-grid">
+              <div className="field">
+                <label>Tower</label>
+                <select value={towerIn} onChange={(e) => setTowerIn(Number(e.target.value))}>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Flat no.</label>
+                <input value={flatNo} onChange={(e) => setFlatNo(e.target.value)} required />
+              </div>
+              <div className="field">
+                <label>Annual amount (₹)</label>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={annualAmount}
+                  onChange={(e) => setAnnualAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="field">
+                <label>Start date</label>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
             </div>
-            <div className="field">
-              <label>Flat no.</label>
-              <input value={flatNo} onChange={(e) => setFlatNo(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>Start date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div className="field form-actions-inline">
-              <button type="submit" className="btn btn-primary">
-                Save
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setAddOpen(false)}>
+            <div className="vrv-form-actions">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAddOpen(false)}>
                 Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Save
               </button>
             </div>
           </form>
