@@ -175,6 +175,80 @@ export function computeSummary(opts: {
   }
 }
 
+export type VrvTowerCollection = {
+  tower: number
+  received: number
+  contractValue: number
+  flatCount: number
+}
+
+export type VrvAttentionItem = {
+  id: string
+  message: string
+  detail?: string
+  severity: 'high' | 'normal'
+}
+
+export function buildTowerCollection(contracts: VrvContractComputed[]): VrvTowerCollection[] {
+  const towers = [3, 4, 5]
+  return towers.map((tower) => {
+    const rows = contracts.filter((c) => c.tower === tower)
+    return {
+      tower,
+      received: rows.reduce((s, c) => s + c.total_received, 0),
+      contractValue: rows.reduce((s, c) => s + c.annual_amount, 0),
+      flatCount: rows.length,
+    }
+  })
+}
+
+export function buildVrvAttentionItems(contracts: VrvContractComputed[]): VrvAttentionItem[] {
+  const items: VrvAttentionItem[] = []
+  const noPayment = contracts.filter((c) => c.total_received === 0)
+  if (noPayment.length > 0) {
+    items.push({
+      id: 'no-payment',
+      message: `${noPayment.length} flat${noPayment.length > 1 ? 's have' : ' has'} no payment yet`,
+      severity: 'high',
+    })
+  }
+  const noStart = contracts.filter((c) => !c.start_date)
+  if (noStart.length > 0) {
+    items.push({
+      id: 'no-start',
+      message: `${noStart.length} contract${noStart.length > 1 ? 's have' : ' has'} no start date`,
+      severity: 'normal',
+    })
+  }
+  const missingOwner = contracts.filter((c) => !c.owner_name?.trim())
+  if (missingOwner.length > 0) {
+    const codes = missingOwner.map((c) => c.apartment_code).slice(0, 6)
+    items.push({
+      id: 'missing-owner',
+      message: `${missingOwner.length} flat${missingOwner.length > 1 ? 's' : ''} missing owner name`,
+      detail: codes.join(', ') + (missingOwner.length > codes.length ? '…' : ''),
+      severity: 'normal',
+    })
+  }
+  const missingMobile = contracts.filter((c) => !c.mobile?.trim())
+  if (missingMobile.length > 0) {
+    items.push({
+      id: 'missing-mobile',
+      message: `${missingMobile.length} flat${missingMobile.length > 1 ? 's' : ''} missing mobile number`,
+      severity: 'normal',
+    })
+  }
+  const expiring = contracts.filter((c) => c.expiry_alert === 'Expiring Soon' || c.expiry_alert === 'Expired')
+  if (expiring.length > 0) {
+    items.push({
+      id: 'expiry',
+      message: `${expiring.length} contract${expiring.length > 1 ? 's' : ''} expired or expiring soon`,
+      severity: 'high',
+    })
+  }
+  return items
+}
+
 export function buildApartmentCode(tower: number, flatNo: string) {
   const flat = flatNo.trim().replace(/^0+/, '') || '0'
   const padded = flat.padStart(4, '0')

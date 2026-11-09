@@ -12,9 +12,9 @@ const LINKS = [
   { to: '/vrv/cashbook', label: 'Cashbook', icon: '◎' },
 ]
 
-type Props = { children: ReactNode; title: string }
+type Props = { children: ReactNode; title: string; toolbar?: ReactNode }
 
-export function VrvLayout({ children, title }: Props) {
+export function VrvLayout({ children, title, toolbar }: Props) {
   const navigate = useNavigate()
   const { profile, user, signOut, isAdmin } = useAuth()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -91,10 +91,11 @@ export function VrvLayout({ children, title }: Props) {
           </div>
         </aside>
         <div className="dash-main">
-          <header className="dash-topbar">
+          <header className="dash-topbar vrv-topbar">
             <div className="dash-topbar-left">
               <h1>{title}</h1>
             </div>
+            {toolbar ? <div className="dash-topbar-right vrv-topbar-tools">{toolbar}</div> : null}
           </header>
           <div className="dash-content vrv-module">{children}</div>
         </div>

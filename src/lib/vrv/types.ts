@@ -110,5 +110,7 @@ export type VrvSummary = {
 }
 
 export const VRV_DEFAULT_PERIOD = '2026-2027'
+export const VRV_DEFAULT_ANNUAL_AMOUNT = 35_000
+export const VRV_PERIOD_OPTIONS = [VRV_DEFAULT_PERIOD] as const
 export const VRV_PAYMENT_MODES: VrvPaymentMode[] = ['Cash', 'UPI', 'Cheque', 'Bank Transfer']
 export const VRV_ALL_MODES: VrvPaymentMode[] = [...VRV_PAYMENT_MODES, 'Credit']
