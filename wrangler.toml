@@ -1,5 +1,6 @@
-# Cloudflare Workers static deploy (build runs: npx wrangler deploy)
+# Cloudflare: build (npm run build) then npx wrangler deploy
 name = "augusta"
+main = "worker/index.ts"
 compatibility_date = "2026-09-24"
 workers_dev = false
 preview_urls = false
@@ -13,6 +14,11 @@ custom_domain = true
 pattern = "www.agaoa.com"
 custom_domain = true
 
+# Set in Dashboard → Workers → augusta → Settings → Variables (plaintext):
+# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = ["/api/supabase-config"]
