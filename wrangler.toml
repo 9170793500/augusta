@@ -4,13 +4,14 @@ compatibility_date = "2026-09-24"
 workers_dev = false
 preview_urls = false
 
+# Custom domains (Cloudflare manages DNS + SSL for agaoa.com zone)
 [[routes]]
 pattern = "agaoa.com"
-zone_name = "agaoa.com"
+custom_domain = true
 
 [[routes]]
-pattern = "*.agaoa.com/*"
-zone_name = "agaoa.com"
+pattern = "www.agaoa.com"
+custom_domain = true
 
 [assets]
 directory = "./dist"
