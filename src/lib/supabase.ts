@@ -33,11 +33,11 @@ async function loadConfig(): Promise<{ url: string; anonKey: string }> {
   const baked = fromViteEnv()
   if (baked) return baked
 
-  const staticFile = await fetchJsonConfig('/supabase-config.json')
-  if (staticFile) return staticFile
-
   const worker = await fetchJsonConfig('/api/supabase-config')
   if (worker) return worker
+
+  const staticFile = await fetchJsonConfig('/supabase-config.json')
+  if (staticFile) return staticFile
 
   throw new Error(
     'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as Cloudflare Build variables, redeploy, or set them on Worker augusta → Settings → Variables.'

@@ -286,10 +286,10 @@ export function LoginPage() {
                     <span>{configError}</span>
                   ) : (
                     <span>
-                      In Cloudflare → your project → <strong>Settings → Variables</strong>, add{' '}
-                      <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> as{' '}
-                      <strong>Build</strong> variables (same values as local <code>.env</code>), then redeploy. If you
-                      use the Worker, set the same two names under Worker <strong>augusta</strong> → Variables as well.
+                      Worker <strong>augusta</strong> → Settings → <strong>Variables (Production)</strong>: add{' '}
+                      <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>. Workers Builds → Deploy
+                      command must be <code>npx wrangler deploy</code> (not static-only). Details:{' '}
+                      <code>docs/CLOUDFLARE_SETUP.md</code> in the repo.
                     </span>
                   )}
                 </div>
