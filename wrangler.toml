@@ -14,8 +14,10 @@ custom_domain = true
 pattern = "www.agaoa.com"
 custom_domain = true
 
-# Set in Dashboard → Workers → augusta → Settings → Variables (plaintext):
-# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+# Production login needs Supabase URL + anon key in BOTH places when using Workers Builds:
+# 1) Build → Settings → Environment variables (Build): VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+#    (npm build writes dist/supabase-config.json from these)
+# 2) Worker → Settings → Variables (runtime): same names for /api/supabase-config fallback
 
 [assets]
 directory = "./dist"

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { isSupabaseConfigured, supabaseProjectRef } from '../lib/supabase'
+import { initSupabase, isSupabaseConfigured, supabaseProjectRef } from '../lib/supabase'
 import { AuthFooter, formatAuthError } from '../components/AuthFooter'
 import { fetchPublicNotifications } from '../components/NotificationsPanel'
 import type { SocietyNotification } from '../lib/types'
@@ -31,11 +31,34 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [notices, setNotices] = useState<SocietyNotification[]>([])
-  const projectRef = supabaseProjectRef()
+  const [supabaseReady, setSupabaseReady] = useState(isSupabaseConfigured)
+  const [configError, setConfigError] = useState<string | null>(null)
+  const projectRef = supabaseReady ? supabaseProjectRef() : null
 
   useEffect(() => {
     fetchPublicNotifications().then(setNotices)
   }, [])
+
+  useEffect(() => {
+    if (isSupabaseConfigured) {
+      setSupabaseReady(true)
+      return
+    }
+    initSupabase()
+      .then(() => setSupabaseReady(true))
+      .catch((err: unknown) => {
+        setConfigError(err instanceof Error ? err.message : 'Could not load Supabase configuration.')
+      })
+  }, [])
+
+  useEffect(() => {
+    if (!showLogin || supabaseReady) return
+    initSupabase()
+      .then(() => setSupabaseReady(true))
+      .catch((err: unknown) => {
+        setConfigError(err instanceof Error ? err.message : 'Could not load Supabase configuration.')
+      })
+  }, [showLogin, supabaseReady])
 
   if (!loading && session && profile) {
     return <Navigate to="/dashboard" replace />
@@ -256,14 +279,22 @@ export function LoginPage() {
               <p className="brand-sub">
                 Sign in with credentials provided by the AOA administrator — admin, owner, or tenant.
               </p>
-              {!isSupabaseConfigured && (
+              {!supabaseReady && (
                 <div className="alert alert-error">
-                  <strong>Server not configured.</strong> Cloudflare → Worker <strong>augusta</strong> → Settings →{' '}
-                  <strong>Builds</strong> → Variables: add <code>VITE_SUPABASE_URL</code> and{' '}
-                  <code>VITE_SUPABASE_ANON_KEY</code> (type <strong>Build</strong>), then redeploy.
+                  <strong>Server not configured.</strong>{' '}
+                  {configError ? (
+                    <span>{configError}</span>
+                  ) : (
+                    <span>
+                      In Cloudflare → your project → <strong>Settings → Variables</strong>, add{' '}
+                      <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> as{' '}
+                      <strong>Build</strong> variables (same values as local <code>.env</code>), then redeploy. If you
+                      use the Worker, set the same two names under Worker <strong>augusta</strong> → Variables as well.
+                    </span>
+                  )}
                 </div>
               )}
-              {isSupabaseConfigured && projectRef && import.meta.env.DEV && (
+              {supabaseReady && projectRef && import.meta.env.DEV && (
                 <p className="form-hint">Supabase project: <code>{projectRef}</code></p>
               )}
               {error && <div className="alert alert-error">{error}</div>}
@@ -289,7 +320,7 @@ export function LoginPage() {
                   placeholder="••••••••"
                 />
               </div>
-              <button className="btn btn-primary public-login-submit" disabled={submitting}>
+              <button className="btn btn-primary public-login-submit" disabled={submitting || !supabaseReady}>
                 {submitting ? 'Signing in…' : 'Sign in'}
               </button>
               <AuthFooter />

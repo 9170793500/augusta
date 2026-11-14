@@ -17,19 +17,31 @@ function fromViteEnv(): { url: string; anonKey: string } | null {
   return { url, anonKey }
 }
 
+async function fetchJsonConfig(path: string): Promise<{ url: string; anonKey: string } | null> {
+  const res = await fetch(path, { cache: 'no-store' })
+  if (!res.ok) return null
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) return null
+  const json = (await res.json()) as { url?: string; anonKey?: string }
+  const url = json.url?.trim()
+  const anonKey = json.anonKey?.trim()
+  if (!url || !anonKey) return null
+  return { url, anonKey }
+}
+
 async function loadConfig(): Promise<{ url: string; anonKey: string }> {
   const baked = fromViteEnv()
   if (baked) return baked
 
-  const res = await fetch('/api/supabase-config', { cache: 'no-store' })
-  if (!res.ok) {
-    throw new Error('Supabase is not configured. Set worker variables VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
-  }
-  const json = (await res.json()) as { url?: string; anonKey?: string }
-  const url = json.url?.trim()
-  const anonKey = json.anonKey?.trim()
-  if (!url || !anonKey) throw new Error('Invalid Supabase config from server.')
-  return { url, anonKey }
+  const staticFile = await fetchJsonConfig('/supabase-config.json')
+  if (staticFile) return staticFile
+
+  const worker = await fetchJsonConfig('/api/supabase-config')
+  if (worker) return worker
+
+  throw new Error(
+    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as Cloudflare Build variables, redeploy, or set them on Worker augusta → Settings → Variables.'
+  )
 }
 
 let resolvedUrl: string | null = fromViteEnv()?.url ?? null
