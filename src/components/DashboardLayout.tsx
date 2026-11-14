@@ -1,90 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AppTopNav } from './AppTopNav'
+import { groupForTab, NAV_GROUPS, PAGE_TITLES, type NavItem } from './navConfig'
 import { useAuth } from '../lib/auth'
 import type { TabId } from '../lib/types'
-
-type NavItem = {
-  id: TabId
-  label: string
-  icon: string
-  adminOnly?: boolean
-  hideForTenant?: boolean
-  ownerOnly?: boolean
-}
-
-type NavGroup = {
-  label: string
-  items: NavItem[]
-  adminOnly?: boolean
-}
-
-function groupForTab(tabId: TabId): string {
-  return NAV_GROUPS.find((g) => g.items.some((i) => i.id === tabId))?.label ?? 'Portal'
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Portal',
-    items: [
-      { id: 'overview', label: 'Overview', icon: '◫' },
-      { id: 'notices', label: 'Community Events', icon: '🔔', adminOnly: true },
-    ],
-  },
-  {
-    label: 'Resident Directory',
-    items: [
-      { id: 'owner', label: 'Owner', icon: '👤', ownerOnly: true },
-      { id: 'residents', label: 'Residents', icon: '🏠' },
-      { id: 'leases', label: 'Leases', icon: '📄' },
-    ],
-  },
-  {
-    label: 'Access & Personnel',
-    items: [
-      { id: 'rfid', label: 'Vehicle RFID', icon: '⬡', hideForTenant: true },
-      { id: 'vehicles', label: 'Vehicles', icon: '🚗', hideForTenant: true },
-      { id: 'driver', label: 'Drivers', icon: '◉', hideForTenant: true },
-      { id: 'maid', label: 'Domestic Help', icon: '◎', hideForTenant: true },
-      { id: 'security', label: 'FMG & Security', icon: '⛨', adminOnly: true },
-    ],
-  },
-  {
-    label: 'Finance & Accounts',
-    items: [
-      { id: 'parking', label: 'Parking & Gym', icon: 'P' },
-      { id: 'dues', label: 'Maintenance Dues', icon: '₹' },
-      { id: 'noc', label: 'NOC Charges', icon: 'N', adminOnly: true },
-    ],
-  },
-  {
-    label: 'Documents & Governance',
-    adminOnly: true,
-    items: [
-      { id: 'documents', label: 'Document Repository', icon: '📎' },
-      { id: 'reports', label: 'Reports & Alerts', icon: '📊', adminOnly: true },
-      { id: 'users', label: 'User Management', icon: '⊞', adminOnly: true },
-    ],
-  },
-]
-
-const PAGE_TITLES: Record<TabId, string> = {
-  overview: 'Resident Portal',
-  notices: 'Community Events',
-  owner: 'Owner Record',
-  residents: 'Resident Directory',
-  leases: 'Lease Agreements',
-  vehicles: 'Vehicles & Parking',
-  rfid: 'Vehicle RFID',
-  driver: 'Drivers & Access',
-  maid: 'Domestic Help',
-  security: 'FMG & Security',
-  parking: 'Parking & Gym Accounts',
-  dues: 'Maintenance Dues',
-  noc: 'NOC Charges',
-  documents: 'Document Repository',
-  reports: 'Reports & Alerts',
-  users: 'User Management',
-}
 
 type Props = {
   tab: TabId
@@ -165,45 +84,12 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
 
   return (
     <div className="dash-shell">
-      <header className="dash-topnav">
-        <button
-          type="button"
-          className="mobile-menu-btn"
-          aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileNavOpen}
-          onClick={() => setMobileNavOpen((open) => !open)}
-        >
-          {mobileNavOpen ? '✕' : '☰'}
-        </button>
-        <div className="dash-topnav-brand">
-          <div className="brand-logo-icon">A</div>
-          <div>
-            <strong>Augusta Golf Homes</strong>
-            <span>Towers III · IV · V</span>
-          </div>
-        </div>
-
-        <nav className="dash-topnav-menu" aria-label="Main navigation">
-          {isAdmin &&
-            navGroups.map((group) => (
-              <button
-                key={group.label}
-                type="button"
-                className={`topnav-item${activeGroup === group.label ? ' active' : ''}`}
-                onClick={() => selectCategory(group.label)}
-              >
-                {group.label}
-              </button>
-            ))}
-        </nav>
-
-        <div className="dash-topnav-meta">
-          {apartmentNo && !isAdmin && <span className="role-pill">{apartmentNo}</span>}
-          {profile?.role && (
-            <span className={`role-pill${isAdmin ? ' admin' : ''}`}>{profile.role}</span>
-          )}
-        </div>
-      </header>
+      <AppTopNav
+        activeSection={activeGroup}
+        onSelectPortalGroup={selectCategory}
+        mobileNavOpen={mobileNavOpen}
+        onMobileMenuToggle={() => setMobileNavOpen((open) => !open)}
+      />
 
       {mobileNavOpen && (
         <button
@@ -294,5 +180,3 @@ export function DashboardLayout({ tab, onTabChange, onRefresh, busy, children }:
     </div>
   )
 }
-
-export { PAGE_TITLES }

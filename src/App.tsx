@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage'
 import { AddDetailsPage } from './pages/AddDetailsPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { VrvModule } from './pages/vrv/VrvModule'
 
 export default function App() {
   return (
@@ -19,6 +20,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vrv/*"
+            element={
+              <ProtectedRoute>
+                <VrvModule />
               </ProtectedRoute>
             }
           />

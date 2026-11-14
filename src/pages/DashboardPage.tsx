@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import type {
@@ -53,6 +54,10 @@ import { AdminUsersPanel } from '../components/AdminUsersPanel'
 import { EditRecordModal, type EditTarget } from '../components/EditRecordModal'
 import { FormModal } from '../components/FormModal'
 import { DashboardLayout } from '../components/DashboardLayout'
+import { buildVrvOverviewAlerts, type VrvOverviewAlert } from '../lib/vrv/compute'
+import { fetchContractsWithComputed, fetchVrvSummary } from '../lib/vrv/data'
+import { formatInr } from '../lib/vrv/format'
+import { VRV_DEFAULT_PERIOD } from '../lib/vrv/types'
 
 const ADMIN_TABS: TabId[] = ['security', 'users', 'reports', 'documents', 'noc', 'notices']
 const SPLIT_TABS: TabId[] = [
@@ -96,9 +101,21 @@ function formModalTitle(tab: TabId, mode: 'add' | 'edit' | 'view') {
 type FormMode = 'add' | 'edit' | 'view'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { profile, isAdmin, isOwner, isTenant, apartmentNo } = useAuth()
+  const [vrvOutstanding, setVrvOutstanding] = useState<number | null>(null)
+  const [vrvAlerts, setVrvAlerts] = useState<VrvOverviewAlert[]>([])
   const lockApartment = !isAdmin
-  const [tab, setTab] = useState<TabId>('overview')
+  const [tab, setTab] = useState<TabId>(() => {
+    const st = location.state as { tab?: TabId } | null
+    return st?.tab ?? 'overview'
+  })
+
+  useEffect(() => {
+    const st = location.state as { tab?: TabId } | null
+    if (st?.tab) setTab(st.tab)
+  }, [location.state])
   const [search, setSearch] = useState('')
   const [towerFilter, setTowerFilter] = useState('')
   const [busy, setBusy] = useState(false)
@@ -222,8 +239,21 @@ export function DashboardPage() {
         .select('*')
         .order('created_at', { ascending: false })
       if (data) setSecurity(data)
+      try {
+        const [vrv, contracts] = await Promise.all([
+          fetchVrvSummary(VRV_DEFAULT_PERIOD, 'all'),
+          fetchContractsWithComputed(VRV_DEFAULT_PERIOD, 'all'),
+        ])
+        setVrvOutstanding(vrv.amcOutstanding)
+        setVrvAlerts(buildVrvOverviewAlerts(contracts))
+      } catch {
+        setVrvOutstanding(null)
+        setVrvAlerts([])
+      }
     } else {
       setSecurity([])
+      setVrvOutstanding(null)
+      setVrvAlerts([])
     }
     setBusy(false)
   }, [isAdmin, apartmentNo])
@@ -434,9 +464,11 @@ export function DashboardPage() {
           { id: 'dues' as TabId, label: 'Dues', count: scopedDues.length, desc: 'Maintenance records' },
         ]),
   ]
+  const overviewAlertCount = alerts.length + (isAdmin ? vrvAlerts.length : 0)
+
   if (isAdmin) {
     quickLinks.unshift({ id: 'users', label: 'Users', count: '→', desc: 'Manage accounts' })
-    quickLinks.push({ id: 'reports', label: 'Reports', count: alerts.length, desc: 'Alerts & summaries' })
+    quickLinks.push({ id: 'reports', label: 'Reports', count: overviewAlertCount, desc: 'Alerts & summaries' })
   }
 
   const showSplit = SPLIT_TABS.includes(tab)
@@ -460,23 +492,40 @@ export function DashboardPage() {
               {!isAdmin && apartmentNo && <div className="welcome-apartment">{apartmentNo}</div>}
             </div>
 
-            {alerts.length > 0 && (
+            {overviewAlertCount > 0 && (
               <section className="overview-alerts-section card-section">
                 <div className="overview-alerts-head">
                   <div>
                     <h3>Reports & Alerts</h3>
                     <p className="overview-alerts-sub">
-                      {alerts.length} upcoming alert{alerts.length > 1 ? 's' : ''} need attention
+                      {overviewAlertCount} alert{overviewAlertCount > 1 ? 's' : ''} need attention
+                      {isAdmin && vrvAlerts.length > 0 ? ` (incl. ${vrvAlerts.length} VRV AMC)` : ''}
                     </p>
                   </div>
                   {isAdmin && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleTabChange('reports')}>
-                      Full reports →
-                    </button>
+                    <div className="vrv-hero-actions">
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleTabChange('reports')}>
+                        Full reports →
+                      </button>
+                      {vrvAlerts.length > 0 && (
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/vrv')}>
+                          VRV Servicing →
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="alert-cards">
-                  {alerts.slice(0, 6).map((a) => (
+                  {vrvAlerts.slice(0, 3).map((a) => (
+                    <div key={a.id} className="alert-card alert-card-info">
+                      <div className="alert-card-top">
+                        <span className="alert-type-badge">{a.alert_type}</span>
+                        <span className="alert-apt">{a.apartment_code}</span>
+                      </div>
+                      <p className="alert-card-msg">{a.message}</p>
+                    </div>
+                  ))}
+                  {alerts.slice(0, Math.max(0, 6 - vrvAlerts.slice(0, 3).length)).map((a) => (
                     <div key={a.id} className={`alert-card${a.due_date ? '' : ' alert-card-info'}`}>
                       <div className="alert-card-top">
                         <span className="alert-type-badge">{a.alert_type}</span>
@@ -489,15 +538,15 @@ export function DashboardPage() {
                     </div>
                   ))}
                 </div>
-                {alerts.length > 6 && isAdmin && (
+                {overviewAlertCount > 6 && isAdmin && (
                   <button type="button" className="link-btn" onClick={() => handleTabChange('reports')}>
-                    View all {alerts.length} alerts →
+                    View all {overviewAlertCount} alerts →
                   </button>
                 )}
               </section>
             )}
 
-            {alerts.length === 0 && isAdmin && (
+            {overviewAlertCount === 0 && isAdmin && (
               <section className="overview-alerts-section card-section overview-alerts-empty">
                 <div className="overview-alerts-head">
                   <div>
@@ -524,6 +573,13 @@ export function DashboardPage() {
                   <span className="stat-desc">{item.desc}</span>
                 </button>
               ))}
+              {isAdmin && vrvOutstanding != null && (
+                <button type="button" className="stat stat-clickable" onClick={() => navigate('/vrv')}>
+                  <strong>{formatInr(vrvOutstanding)}</strong>
+                  <span className="stat-label">VRV AMC</span>
+                  <span className="stat-desc">Outstanding balance</span>
+                </button>
+              )}
             </div>
 
             <div className="overview-grid">

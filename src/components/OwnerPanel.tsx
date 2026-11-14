@@ -6,6 +6,7 @@ import { ApartmentField } from './ApartmentField'
 import type { FlatResidentRow } from './FlatResidentsForm'
 import { emptyPerson, savePersonToFlat, type PersonFields } from '../lib/residentUtils'
 import { RowActionsMenu } from './RowActionsMenu'
+import { VrvOwnerCard } from './vrv/VrvOwnerCard'
 
 type Props = FormProps & {
   flatResidents: FlatResidentRow[]
@@ -163,6 +164,8 @@ export function OwnerPanel({
           {saving ? 'Saving…' : 'Save owner'}
         </button>
       )}
+
+      {activeApt && <VrvOwnerCard apartmentCode={activeApt} />}
     </form>
   )
 }
