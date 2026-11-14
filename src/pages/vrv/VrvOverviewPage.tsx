@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { VrvLayout } from '../../components/vrv/VrvLayout'
 import { RecordPaymentModal } from '../../components/vrv/RecordPaymentModal'
-import { buildTowerCollection, buildVrvAttentionItems } from '../../lib/vrv/compute'
+import {
+  buildTowerCollection,
+  buildVrvAttentionItems,
+  contractAmountHeroLine,
+  contractAmountSubtitle,
+  summarizeContractAmounts,
+} from '../../lib/vrv/compute'
 import { fetchAllPayments, fetchContractsWithComputed, fetchVrvSummary } from '../../lib/vrv/data'
 import { formatInr, formatUiDate } from '../../lib/vrv/format'
 import type { VrvContractComputed, VrvSummary } from '../../lib/vrv/types'
@@ -32,10 +38,14 @@ export default function VrvOverviewPage() {
     void load().catch((e) => console.error(e))
   }, [load])
 
-  const towerCollection = useMemo(() => buildTowerCollection(allContracts), [allContracts])
+  const scopedContracts = useMemo(
+    () => allContracts.filter((c) => tower === 'all' || c.tower === tower),
+    [allContracts, tower]
+  )
+  const towerCollection = useMemo(() => buildTowerCollection(scopedContracts), [scopedContracts])
   const attentionItems = useMemo(() => buildVrvAttentionItems(allContracts), [allContracts])
-
-  const annualPerFlat = allContracts[0]?.annual_amount ?? 35_000
+  const amountSummary = useMemo(() => summarizeContractAmounts(scopedContracts), [scopedContracts])
+  const flatCount = summary?.flatCount ?? scopedContracts.length
   const collectedPct =
     summary && summary.contractValue > 0
       ? Math.min(100, (summary.amcReceived / summary.contractValue) * 100)
@@ -76,8 +86,9 @@ export default function VrvOverviewPage() {
             AMC {period} · {allContracts[0]?.service ?? 'VRV Service & Repair'}
           </h2>
           <p>
-            {summary?.flatCount ?? allContracts.length} flats under contract across Towers 3, 4 and 5 ·{' '}
-            {formatInr(annualPerFlat)} per flat per year
+            {flatCount} flats under contract
+            {tower === 'all' ? ' across Towers 3, 4 and 5' : ` · Tower ${tower}`}
+            {amountSummary ? ` · ${contractAmountHeroLine(amountSummary, formatInr)}` : ''}
           </p>
         </div>
         <div className="vrv-hero-actions">
@@ -98,7 +109,9 @@ export default function VrvOverviewPage() {
               <span className="vrv-kpi-label">Contract value</span>
               <strong className="vrv-kpi-value">{formatInr(summary.contractValue)}</strong>
               <span className="vrv-kpi-sub">
-                {summary.flatCount} flats × {formatInr(annualPerFlat)}
+                {amountSummary
+                  ? contractAmountSubtitle(amountSummary, formatInr)
+                  : `Total from ${summary.flatCount} flats`}
               </span>
             </div>
             <div className="vrv-kpi">
