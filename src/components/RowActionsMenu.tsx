@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 
+type ExtraItem = { label: string; onClick: () => void }
+
 type Props = {
   onView: () => void
   onEdit?: () => void
   onDelete?: () => void
+  extra?: ExtraItem[]
 }
 
-export function RowActionsMenu({ onView, onEdit, onDelete }: Props) {
+export function RowActionsMenu({ onView, onEdit, onDelete, extra }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -40,6 +43,19 @@ export function RowActionsMenu({ onView, onEdit, onDelete }: Props) {
               Edit
             </button>
           )}
+          {extra?.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+                item.onClick()
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
           {onDelete && (
             <button type="button" role="menuitem" className="danger" onClick={() => { setOpen(false); onDelete() }}>
               Delete

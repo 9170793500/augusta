@@ -189,6 +189,44 @@ export type VrvAttentionItem = {
   severity: 'high' | 'normal'
 }
 
+export type VrvAmountSummary =
+  | { kind: 'uniform'; amount: number; count: number }
+  | { kind: 'mixed'; min: number; max: number; count: number; total: number }
+
+export function summarizeContractAmounts(contracts: VrvContractComputed[]): VrvAmountSummary | null {
+  if (contracts.length === 0) return null
+  const amounts = contracts.map((c) => c.annual_amount)
+  const unique = new Set(amounts)
+  const count = contracts.length
+  if (unique.size === 1) {
+    return { kind: 'uniform', amount: amounts[0], count }
+  }
+  return {
+    kind: 'mixed',
+    min: Math.min(...amounts),
+    max: Math.max(...amounts),
+    count,
+    total: amounts.reduce((s, n) => s + n, 0),
+  }
+}
+
+export function contractAmountSubtitle(summary: VrvAmountSummary, formatInr: (n: number) => string): string {
+  if (summary.kind === 'uniform') {
+    return `${summary.count} flats × ${formatInr(summary.amount)} each`
+  }
+  if (summary.min === summary.max) {
+    return `${summary.count} flats × ${formatInr(summary.min)} each`
+  }
+  return `${summary.count} flats · ${formatInr(summary.min)} – ${formatInr(summary.max)} per flat (total ${formatInr(summary.total)})`
+}
+
+export function contractAmountHeroLine(summary: VrvAmountSummary, formatInr: (n: number) => string): string {
+  if (summary.kind === 'uniform') {
+    return `${formatInr(summary.amount)} per flat per year`
+  }
+  return `Annual AMC varies by flat (${formatInr(summary.min)} – ${formatInr(summary.max)})`
+}
+
 export function buildTowerCollection(contracts: VrvContractComputed[]): VrvTowerCollection[] {
   const towers = [3, 4, 5]
   return towers.map((tower) => {
